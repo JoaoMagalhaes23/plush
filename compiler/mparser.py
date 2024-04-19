@@ -16,7 +16,7 @@ def p_start(p):
     '''
     start : top_level_declarations
     '''
-    p[0] = Program(children=[p[1]])
+    p[0] = ProgramNode(children=[p[1]])
 
 def p_top_level_declarations(p):
     '''
@@ -98,13 +98,25 @@ def p_statement(p):
 
 def p_if_statement(p):
     '''
-    if_statement    : IF expression L_BRACKET block R_BRACKET ELSE L_BRACKET block R_BRACKET
-                    | IF expression L_BRACKET block R_BRACKET
+    if_statement    : IF expression L_BRACKET block R_BRACKET else_if_statements
     '''
-    if len(p) == 10:
-        p[0] = If(children=[p[2], p[4], p[8]])
+    if p[6] != None:
+        p[0] = If(children=[p[2], p[4], p[6]])
     else:
         p[0] = If(children=[p[2], p[4]])
+
+def p_else_if_statements(p):
+    '''
+    else_if_statements  : ELSE IF expression L_BRACKET block R_BRACKET else_if_statements
+                        | ELSE IF expression L_BRACKET block R_BRACKET
+                        | ELSE L_BRACKET block R_BRACKET
+    '''
+    if len(p) == 8:
+        p[0] = ElseIf(children=[p[3], p[5], p[7]])
+    elif len(p) == 7:
+        p[0] = ElseIf(children=[p[3], p[5]])
+    else:
+        p[0] = Else(children=[p[3]])
 
 def p_while_statement(p):
     '''
@@ -154,6 +166,7 @@ def p_type(p):
             | type_boolean
             | type_char
             | type_float
+            | type_void
             | type_array
     '''
     p[0] = p[1]
@@ -193,6 +206,12 @@ def p_type_float(p):
     type_float : FLOAT
     '''
     p[0] = FloatType()
+
+def p_type_void(p):
+    '''
+    type_void : VOID
+    '''
+    p[0] = VoidType()
 
 def p_type_array(p):
     '''
@@ -252,9 +271,13 @@ def p_literal_float(p):
 
 def p_identifier(p):
     '''
-    identifier : ID
+    identifier  : ID
+                | ID L_S_BRACKET expression R_S_BRACKET
     '''
-    p[0] = Identifier(p[1])
+    if len(p) == 5:
+        p[0] = Index(array=p[1], children=[p[3]])
+    else: 
+        p[0] = Identifier(p[1])
 
 def p_array(p):
     '''

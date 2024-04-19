@@ -7,7 +7,7 @@ class Node:
 
 
 @dataclass
-class Program(Node):
+class ProgramNode(Node):
     children: list = None
 
     def __str__(self):
@@ -77,13 +77,6 @@ class Block(Node):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class Statement(Node):
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
-@dataclass
 class Return(Node):
     function_name: str
     children: list = None
@@ -93,6 +86,20 @@ class Return(Node):
 
 @dataclass
 class If(Node):
+    children: list = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__}"
+
+@dataclass
+class ElseIf(Node):
+    children: list = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__}"
+
+@dataclass
+class Else(Node):
     children: list = None
 
     def __str__(self):
@@ -159,6 +166,11 @@ class FloatType(Node):
         return self.__class__.__name__
 
 @dataclass
+class VoidType(Node):
+    def __str__(self):
+        return self.__class__.__name__
+
+@dataclass
 class ArrayType(Node):
     children: list = None
 
@@ -221,6 +233,14 @@ class Identifier(Node):
     
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
+    
+@dataclass
+class Index(Node):
+    array: str
+    children: list = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__} -> {self.array}"
 
 @dataclass
 class FunctionCall(Node):
@@ -245,32 +265,3 @@ def print_ast(node, indent=0):
                 print_ast(child, indent + 1)
     else:
         print('\t' * indent + str(node))
-
-# def MyParser():
-#     lexer = MyLexer()
-#     def p_start(p):
-#         '''
-#         start : statement_list
-#         '''
-#         print(str(p[1]))
-            
-#     def p_statement_list(p):
-#         '''
-#         statement_list : statement statement_list
-#                        | empty
-#         '''
-#         if len(p) == 2:
-#             p[0] = p[1]
-#         else:
-#             p[0] = Node('statement_list', children=[p[1], p[2]])
-    
-#     def p_statement(p):
-#         '''
-#         statement : create_variable
-#                   | assign
-#                   | function
-#         '''
-#         p[0] = p[1]
-    
-    
-        

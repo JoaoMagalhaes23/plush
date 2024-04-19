@@ -15,7 +15,7 @@ function bubbleSort(val arr: [int], val size: int): [int] {
     }
 }
 
-function main(val args:[string]) {
+function main(val args:[string]): int {
     val arr : [int] := [64, 34, 25, 12, 22, 11, 90];
     val size : int := 7;
     val res : [int] := bubbleSort(arr, size);

@@ -1,13 +1,13 @@
-function fizzBuzz(var mi, val ma: int) : string {
+function fizzBuzz(var mi: int, val ma: int) : string {
     var s : string := "";
     while mi <= ma {
         if mi % 3 = 0 {
             s := s + "Fizz";
         }
-        if mi % 4 = 0 {
+        else if mi % 4 = 0 {
             s := s + "Buzz";
         }
-        if mi % 3 != 0 && mi % 4 != 0 {
+        else if mi % 3 != 0 && mi % 4 != 0 {
             s := s + mi;
         }
         print_string(s);
@@ -16,7 +16,8 @@ function fizzBuzz(var mi, val ma: int) : string {
     fizzBuzz := s;
 }
 
-function main(val args:[string]) {
+function main(val args:[string]): int {
     val result : string := fizzBuzz(1, 100);
     print_string(result);
+    main := 0;
 }

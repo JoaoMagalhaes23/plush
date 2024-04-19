@@ -87,37 +87,31 @@ t_NOT               = r'!'
 
 def t_BOOLEAN_LITERAL(t):
     r'true|false'
-    t.value = bool(t.value)
     return t
 
 def t_CHAR_LITERAL(t):
     r'\'[a-zA-Z0-9]\''
-    t.value = str(t.value)
     return t
 
 def t_FLOAT_LITERAL(t):
     r'\d+\.\d+f'
-    t.value = float(t.value)
     return t
 
 def t_DOUBLE_LITERAL(t):
     r'\d+\.\d+'
-    t.value = float(t.value)
     return t
 
 def t_INT_LITERAL(t):
     r'\d+'
-    t.value = int(t.value)
     return t
 
 def t_STRING_LITERAL(t):
-    r'\".*\"'
-    t.value = str(t.value)
+    r'\".*\"|\'.*\''
     return t
 
 def t_ID(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
-    t.type = reserved.get(t.value,'ID')
+    t.type = reserved.get(t.value.lower(),'ID')
     return t
 
 def t_error(t):
