@@ -1,3 +1,2 @@
-val actual_min : int := -9;
-val actual_max : int := 9;
-actual_max := actual_min;
+var actual_min : [int] := [9,9,7];
+val actual_max : int := 1 > 4 + actual_min;
