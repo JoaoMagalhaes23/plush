@@ -61,15 +61,6 @@ class ParameterList(Node):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class Parameter(Node):
-    type: str
-    name: str
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__} -> {self.type} {self.name}"
-
-@dataclass
 class Block(Node):
     children: list = None
 
@@ -221,7 +212,7 @@ class FloatLiteral(Node):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class ArrayElement(Node):
+class ArrayLiteral(Node):
     children: list = None
 
     def __str__(self):

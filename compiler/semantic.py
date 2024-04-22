@@ -54,6 +54,8 @@ def verify(ctx:Context, node: Node):
         return verifyAssign(ctx, node)
     elif isinstance(node, Function):
         return verifyFunction(ctx, node)
+    elif isinstance(node, ParameterList):
+        return verifyParameterList(ctx, node)
     elif isinstance(node, UnaryOp):
         return verifyUnaryOp(ctx, node)
     elif isinstance(node, BinaryOp):
@@ -76,6 +78,8 @@ def verify(ctx:Context, node: Node):
         return verifyFloatLiteral()
     elif isinstance(node, Identifier):
         return verifyIdentifier(ctx, node)
+    elif isinstance(node, Block):
+        return verifyBlock(ctx, node)
     else:
         raise TypeError(f"Node {node} nao reconhecido")
         
@@ -92,18 +96,20 @@ def verifyImmutableVariable(ctx: Context, node: Node):
         raise TypeError(f"Variavel {node.name} ja foi declarada")
     variable_type = node.children[0]
     ctx.set_type(node.name, variable_type)
-    expression_type = verify(ctx, node.children[1])
-    if expression_type != variable_type:
-        raise TypeError(f"Variavel {node.name} tem tipo {variable_type} mas foi atribuido {expression_type}")
+    if len(node.children) > 1:
+        expression_type = verify(ctx, node.children[1])
+        if expression_type != variable_type:
+            raise TypeError(f"Variavel {node.name} tem tipo {variable_type} mas foi atribuido {expression_type}")
     
 def verifyMutableVariable(ctx: Context, node: Node):
     if ctx.has_var_in_current_scope(node.name):
-        raise TypeError(f"Variavel {node.name} nao foi declarada")
+        raise TypeError(f"Variavel {node.name} foi declarada")
     variable_type = node.children[0]
     ctx.set_type(node.name, variable_type)
-    expression_type = verify(ctx, node.children[1])
-    if expression_type != variable_type:
-        raise TypeError(f"Variavel {node.name} tem tipo {variable_type} mas foi atribuido {expression_type}")
+    if len(node.children) > 1:
+        expression_type = verify(ctx, node.children[1])
+        if expression_type != variable_type:
+            raise TypeError(f"Variavel {node.name} tem tipo {variable_type} mas foi atribuido {expression_type}")
 
 def verifyAssign(ctx: Context, node: Node):
     if not ctx.has_var(node.name):
@@ -131,9 +137,19 @@ def verifyIdentifier(ctx: Context, node: Node):
     return ctx.get_type(value)
 
 def verifyFunction(ctx: Context, node: Node):
-    name = node.name
-    if ctx.has_var(name):
-        raise TypeError(f"Funcao {name} ja esta definida")
+    ctx.enter_scope()
+    function_name = node.name
+    if ctx.has_var(function_name):
+        raise TypeError(f"Funcao {function_name} ja esta definida")
+    verify(ctx, node.children[0]) # verify parameters
+    return_type = node.children[1] # verify return
+    ctx.set_type(function_name, return_type)
+    verify(ctx, node.children[2]) # verify block
+    ctx.exit_scope()
+    
+def verifyParameterList(ctx: Context, node: Node):
+    for par in node.children:
+        verify(ctx, par)
 
 def verifyIf(ctx: Context, node: Node):
     condition_type = verify(ctx, node.children[0])
@@ -148,6 +164,12 @@ def verifyWhile(ctx: Context, node: Node):
     if condition_type != BooleanType():
         raise TypeError(f"Condicao do while deve ser booleana")
     verify(ctx, node.children[1])
+    
+def verifyBlock(ctx: Context, node: Node):
+    ctx.enter_scope()
+    for st in node.children:
+        verify(ctx, st)
+    ctx.exit_scope()
 
 ## Verify Literal Types
 

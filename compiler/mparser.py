@@ -39,13 +39,29 @@ def p_top_level_declaration(p):
 
 def p_create_variable(p):
     '''
-    create_variable : MUTABLE_VARIABLE ID COLON type COLON_EQUALS expression
-                    | IMMUTABLE_VARIABLE ID COLON type COLON_EQUALS expression
+    create_variable : MUTABLE_VARIABLE ID COLON type t
+                    | IMMUTABLE_VARIABLE ID COLON type t   
     '''
     if p[1] == 'var':
-        p[0] = MutableVariable(name=p[2], children=[p[4], p[6]])
+        if p[5] != None:
+            p[0] = MutableVariable(name=p[2], children=[p[4], p[5]])
+        else:
+            p[0] = MutableVariable(name=p[2], children=[p[4]])
     else:
-        p[0] = ImmutableVariable(name=p[2], children=[p[4], p[6]])
+        if p[5] != None:
+            p[0] = ImmutableVariable(name=p[2], children=[p[4], p[5]])
+        else:
+            p[0] = ImmutableVariable(name=p[2], children=[p[4]])
+
+def p_t(p):
+    '''
+    t   : COLON_EQUALS expression
+        | 
+    '''
+    if len(p) == 3:
+        p[0] = p[2]
+    else:
+        p[0] = None
 
 def p_assign(p):
     '''
@@ -61,20 +77,13 @@ def p_function(p):
 
 def p_parameter_list(p):
     '''
-    parameter_list  : parameter COMMA parameter_list
-                    | parameter
+    parameter_list  : create_variable COMMA parameter_list
+                    | create_variable
     '''
     if len(p) == 2:
         p[0] = ParameterList(children=[p[1]])
     else:
         p[0] = ParameterList(children=[p[1]] + p[3].children)
-
-def p_parameter(p):
-    '''
-    parameter   : IMMUTABLE_VARIABLE ID COLON type
-                | MUTABLE_VARIABLE ID COLON type
-    '''
-    p[0] = Parameter(type=p[1], name=p[2], children=[p[4]])
     
 def p_block(p):
     ''' 
@@ -293,11 +302,11 @@ def p_values_list(p):
                 |
     '''
     if len(p) == 4:
-        p[0] = ArrayElement(children=[p[1]] + p[3].children)
+        p[0] = ArrayLiteral(children=[p[1]] + p[3].children)
     elif len(p) == 2:
-        p[0] = ArrayElement(children=[p[1]])
+        p[0] = ArrayLiteral(children=[p[1]])
     else:
-        p[0] = ArrayElement()
+        p[0] = ArrayLiteral()
 
 def p_function_call(p):
     '''
