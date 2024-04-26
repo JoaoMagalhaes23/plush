@@ -39,30 +39,14 @@ def p_top_level_declaration(p):
 
 def p_create_variable(p):
     '''
-    create_variable : MUTABLE_VARIABLE ID COLON type t
-                    | IMMUTABLE_VARIABLE ID COLON type t   
+    create_variable : MUTABLE_VARIABLE ID COLON type COLON_EQUALS expression
+                    | IMMUTABLE_VARIABLE ID COLON type COLON_EQUALS expression   
     '''
     if p[1] == 'var':
-        if p[5] != None:
-            p[0] = MutableVariable(name=p[2], children=[p[4], p[5]])
-        else:
-            p[0] = MutableVariable(name=p[2], children=[p[4]])
+        p[0] = MutableVariable(name=p[2], children=[p[4], p[6]])
     else:
-        if p[5] != None:
-            p[0] = ImmutableVariable(name=p[2], children=[p[4], p[5]])
-        else:
-            p[0] = ImmutableVariable(name=p[2], children=[p[4]])
-
-def p_t(p):
-    '''
-    t   : COLON_EQUALS expression
-        | 
-    '''
-    if len(p) == 3:
-        p[0] = p[2]
-    else:
-        p[0] = None
-
+        p[0] = ImmutableVariable(name=p[2], children=[p[4], p[6]])
+            
 def p_assign(p):
     '''
     assign : ID COLON_EQUALS expression
@@ -71,19 +55,33 @@ def p_assign(p):
     
 def p_function(p):
     '''
-    function : FUNCTION ID L_PAREN parameter_list R_PAREN COLON type L_BRACKET block R_BRACKET
+    function    : FUNCTION ID L_PAREN parameter_list R_PAREN COLON type L_BRACKET block R_BRACKET
+                | FUNCTION ID L_PAREN parameter_list R_PAREN COLON type SEMICOLON
     '''
-    p[0] = Function(name=p[2], children=[p[4], p[7], p[9]])
+    if len(p) == 11:
+        p[0] = Function(name=p[2], children=[p[4], p[7], p[9]])
+    else:
+        p[0] = Function(name=p[2], children=[p[4], p[7]])
 
 def p_parameter_list(p):
     '''
-    parameter_list  : create_variable COMMA parameter_list
-                    | create_variable
+    parameter_list  : parameter COMMA parameter_list
+                    | parameter
     '''
     if len(p) == 2:
         p[0] = ParameterList(children=[p[1]])
     else:
         p[0] = ParameterList(children=[p[1]] + p[3].children)
+        
+def p_parameter(p):
+    '''
+    parameter   : MUTABLE_VARIABLE ID COLON type
+                | IMMUTABLE_VARIABLE ID COLON type
+    '''
+    if p[1] == 'var':
+        p[0] = MutableParameter(name=p[2], child=p[4])
+    else:
+        p[0] = ImmutableParameter(name=p[2], child=p[4])
     
 def p_block(p):
     ''' 
@@ -108,11 +106,12 @@ def p_statement(p):
 def p_if_statement(p):
     '''
     if_statement    : IF expression L_BRACKET block R_BRACKET else_if_statements
+                    | IF expression L_BRACKET block R_BRACKET
     '''
-    if p[6] != None:
-        p[0] = If(children=[p[2], p[4], p[6]])
-    else:
+    if len(p) == 6:
         p[0] = If(children=[p[2], p[4]])
+    else:
+        p[0] = If(children=[p[2], p[4], p[6]])
 
 def p_else_if_statements(p):
     '''
@@ -161,11 +160,11 @@ def p_expression(p):
 
 def p_expression_uminus(p):
     'expression : MINUS expression %prec UMINUS'
-    p[0] = UnaryOp(op=p[1], children=[p[2]])
+    p[0] = UnaryOp(children=[p[2]])
 
 def p_expression_not(p):
     'expression : NOT expression'
-    p[0] = UnaryOp(op=p[1], children=[p[2]])
+    p[0] = NotOp(children=[p[2]])
 
 def p_type(p):
     '''
@@ -226,7 +225,7 @@ def p_type_array(p):
     '''
     type_array : L_S_BRACKET type R_S_BRACKET
     '''
-    p[0] = ArrayType(children=[p[2]])
+    p[0] = ArrayType(child=p[2])
     
 def p_value(p):
     '''
@@ -284,7 +283,7 @@ def p_identifier(p):
                 | ID L_S_BRACKET expression R_S_BRACKET
     '''
     if len(p) == 5:
-        p[0] = Index(array=p[1], children=[p[3]])
+        p[0] = Index(array=p[1], child=p[3])
     else: 
         p[0] = Identifier(p[1])
 
@@ -297,8 +296,8 @@ def p_array(p):
 
 def p_values_list(p):
     '''
-    values_list : value COMMA values_list
-                | value
+    values_list : expression COMMA values_list
+                | expression
                 |
     '''
     if len(p) == 4:

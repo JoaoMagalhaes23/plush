@@ -61,20 +61,28 @@ class ParameterList(Node):
         return f"{self.__class__.__name__}"
 
 @dataclass
+class MutableParameter(Node):
+    name: str
+    child: Node = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__ }-> {self.name}"
+
+@dataclass
+class ImmutableParameter(Node):
+    name: str
+    child: Node = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__} -> {self.name}"
+
+@dataclass
 class Block(Node):
     children: list = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
-
-@dataclass
-class Return(Node):
-    function_name: str
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__} -> {self.function_name}"
-
+    
 @dataclass
 class If(Node):
     children: list = None
@@ -120,11 +128,17 @@ class Group(Node):
     
 @dataclass
 class UnaryOp(Node):
-    op: str
     children: list = None
     
     def __str__(self):
-        return f"{self.__class__.__name__} -> {self.op}"
+        return f"{self.__class__.__name__}"
+    
+@dataclass
+class NotOp(Node):
+    children: list = None
+    
+    def __str__(self):
+        return f"{self.__class__.__name__}"
 
 @dataclass
 class IntType(Node):
@@ -163,11 +177,10 @@ class VoidType(Node):
 
 @dataclass
 class ArrayType(Node):
-    children: list = None
+    child: Node = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
-
 
 @dataclass
 class StringLiteral(Node):
@@ -228,7 +241,7 @@ class Identifier(Node):
 @dataclass
 class Index(Node):
     array: str
-    children: list = None
+    child: Node = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.array}"
@@ -254,5 +267,7 @@ def print_ast(node, indent=0):
         if hasattr(node, 'children') and node.children:
             for child in node.children:
                 print_ast(child, indent + 1)
+        if hasattr(node, 'child') and node.child:
+            print_ast(node.child, indent + 1)
     else:
         print('\t' * indent + str(node))
