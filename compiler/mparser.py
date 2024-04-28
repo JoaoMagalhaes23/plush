@@ -320,9 +320,9 @@ def p_arguments_list(p):
                     |
     '''
     if len(p) == 4:
-        p[0] = ArgumentsList(children=[p[1], p[3]])
+        p[0] = ArgumentsList(children=[p[1]] + p[3].children)
     elif len(p) == 2:
-        p[0] = p[1]
+        p[0] = ArgumentsList(children=[p[1]])
     else:
         p[0] = ArgumentsList()
 
