@@ -113,11 +113,9 @@ class Context(object):
     def exit_scope(self):
         self.stack.pop(0)
 
-def verify(ctx:Context, node: Node):
+def verify(ctx:Context, node: Node, type = None):
     if isinstance(node, ProgramNode):
         return verifyProgramNode(ctx, node)
-    elif isinstance(node, TopLevelDeclarations):
-        return verifyTopLevelDeclarations(ctx, node)
     elif isinstance(node, ImmutableVariable):
         return verifyImmutableVariable(ctx, node)
     elif isinstance(node, MutableVariable):
@@ -128,8 +126,6 @@ def verify(ctx:Context, node: Node):
         return verifyIndex(ctx, node)
     elif isinstance(node, Function):
         return verifyFunction(ctx, node)
-    elif isinstance(node, ParameterList):
-        return verifyParameterList(ctx, node)
     elif isinstance(node, NotOp):
         return verifyNotOp(ctx, node)
     elif isinstance(node, UnaryOp):
@@ -138,10 +134,6 @@ def verify(ctx:Context, node: Node):
         return verifyBinaryOp(ctx, node)
     elif isinstance(node, If):
         return verifyIf(ctx, node)
-    elif isinstance(node, ElseIf):
-        return verifyElseIf(ctx, node)
-    elif isinstance(node, Else):
-        return verifyElse(ctx, node)
     elif isinstance(node, While):
         return verifyWhile(ctx, node)
     elif isinstance(node, IntLiteral):
@@ -164,14 +156,12 @@ def verify(ctx:Context, node: Node):
         return verifyFunctionCall(ctx, node)
     elif isinstance(node, ArgumentsList):
         return verifyArgumentsList(ctx, node)
+    elif isinstance(node, ArrayLiteral):
+        return verifyArrayLiteral(ctx, node)
     else:
         raise TypeError(f"Node {node} nao reconhecido")
         
 def verifyProgramNode(ctx: Context, node: Node):
-    for decl in node.children:
-        verify(ctx, decl)
-
-def verifyTopLevelDeclarations(ctx: Context, node: Node):
     for decl in node.children:
         verify(ctx, decl)
 
@@ -243,14 +233,6 @@ def verifyFunction(ctx: Context, node: Node):
         if isinstance(t, FunctionDeclarationSignature):
             raise TypeError(f"Function {function_name} already been declared")
         ctx.set_function_declaration_signature_in_scope(function_name, parameters_list.children, return_type)
-    
-def verifyParameterList(ctx: Context, node: Node):
-    value_counts = {}
-    for par in node.children:
-        if par.name in value_counts:
-            raise TypeError(f"Parameter with name {par.name} already been declared")
-        else:
-            value_counts[par.name] = 1
 
 def verifyIf(ctx: Context, node: Node):
     condition_type = verify(ctx, node.children[0])
@@ -259,17 +241,6 @@ def verifyIf(ctx: Context, node: Node):
     verify(ctx, node.children[1])
     if len(node.children) == 3:
         verify(ctx, node.children[2])
-
-def verifyElseIf(ctx: Context, node: Node):
-    condition_type = verify(ctx, node.children[0])
-    if condition_type != BooleanType():
-        raise TypeError(f"Else if condition must be boolean")
-    verify(ctx, node.children[1])
-    if len(node.children) == 3:
-        verify(ctx, node.children[2])
-
-def verifyElse(ctx: Context, node: Node):
-    verify(ctx, node.children[0])
 
 def verifyWhile(ctx: Context, node: Node):
     condition_type = verify(ctx, node.children[0])
@@ -297,6 +268,9 @@ def verifyArgumentsList(ctx: Context, node: Node):
     return [verify(ctx, arg) for arg in node.children]
 
 ## Verify Literal Types
+
+def verifyArrayLiteral(ctx: Context, node: Node):
+    pass
 
 def verifyIntLiteral():
     return IntType()

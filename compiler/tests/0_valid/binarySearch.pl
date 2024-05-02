@@ -14,7 +14,7 @@ function binarySearch(val arr: [int], val target: int, val size: int): int {
     binarySearch := -1;
 }
 function main (val args:[string]): int {
-    val arr : [int] := [1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+    val arr : [int] := {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
     val target : int := 13;
     val index : int := binarySearch(arr, target, 10);
     if index != -1 {

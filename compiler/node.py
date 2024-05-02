@@ -5,6 +5,17 @@ class Node:
     def __str__(self):
         return self.__class__.__name__
 
+@dataclass
+class Type(Node):
+    pass
+
+@dataclass
+class Statement(Node):
+    pass
+
+@dataclass
+class Expression(Node):
+    pass
 
 @dataclass
 class ProgramNode(Node):
@@ -14,260 +25,275 @@ class ProgramNode(Node):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class TopLevelDeclarations(Node):
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
-@dataclass
-class ImmutableVariable(Node):
+class ImmutableVariable(Statement):
     name: str
-    children: list = None
+    type: Type = None
+    expression: Expression = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
 
 
 @dataclass
-class MutableVariable(Node):
+class MutableVariable(Statement):
     name: str
-    children: list = None
+    type: Type = None
+    expression: Expression = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
 
 @dataclass
-class Assign(Node):
+class Assign(Statement):
     name: str
-    children: list = None
+    expression: Expression = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
 
 @dataclass
-class Function(Node):
+class Function(Statement):
     name: str
-    children: list = None
-
+    parameters: list = None
+    return_type: Type = None
+    block: Statement = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
 
 @dataclass
-class ParameterList(Node):
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
-@dataclass
-class MutableParameter(Node):
+class MutableParameter(Statement):
     name: str
-    child: Node = None
+    type: Type
 
     def __str__(self):
         return f"{self.__class__.__name__ }-> {self.name}"
 
 @dataclass
-class ImmutableParameter(Node):
+class ImmutableParameter(Statement):
     name: str
-    child: Node = None
+    type: Type
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
 
 @dataclass
-class Block(Node):
-    children: list = None
+class Block(Statement):
+    statements: list = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
     
 @dataclass
-class If(Node):
-    children: list = None
+class If(Statement):
+    condition: Expression = None
+    b1: Statement = None
+    b2: Statement = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class ElseIf(Node):
-    children: list = None
+class While(Statement):
+    condition: Expression = None
+    block: Statement = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class Else(Node):
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
-@dataclass
-class While(Node):
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
-@dataclass
-class BinaryOp(Node):
+class BinaryOp(Expression):
     op: str
-    children: list = None
+    left_expression: Expression = None
+    right_expression: Expression = None
+    type: Type = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.op}"
     
 @dataclass
-class Group(Node):
-    children: list = None
-
+class Group(Expression):
+    expression: Expression = None
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__}"
     
 @dataclass
-class UnaryOp(Node):
-    children: list = None
-    
+class UnaryOp(Expression):
+    expression: Expression = None
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__}"
     
 @dataclass
-class NotOp(Node):
-    children: list = None
-    
+class NotOp(Expression):
+    expression: Expression = None
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class IntType(Node):
+class IntType(Type):
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
-class DoubleType(Node):
+class DoubleType(Type):
     def __str__(self):
         return self.__class__.__name__
     
 @dataclass
-class StringType(Node):
+class StringType(Type):
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
-class BooleanType(Node):
+class BooleanType(Type):
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
-class CharType(Node):
+class CharType(Type):
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
-class FloatType(Node):
+class FloatType(Type):
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
-class VoidType(Node):
+class VoidType(Type):
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
-class ArrayType(Node):
-    child: Node = None
+class ArrayType(Type):
+    subtype: Type = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class StringLiteral(Node):
+class StringLiteral(Expression):
     value: str
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class IntLiteral(Node):
+class IntLiteral(Expression):
     value: int
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class DoubleLiteral(Node):
+class DoubleLiteral(Expression):
     value: float
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class BooleanLiteral(Node):
+class BooleanLiteral(Expression):
     value: bool
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class CharLiteral(Node):
+class CharLiteral(Expression):
     value: str
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class FloatLiteral(Node):
+class FloatLiteral(Expression):
     value: float
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class ArrayLiteral(Node):
-    children: list = None
+class ArrayLiteral(Expression):
+    elements: list[Expression] = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class Identifier(Node):
-    value: str
+class Identifier(Expression):
+    id: str
+    type: Type = None
     
     def __str__(self):
-        return f"{self.__class__.__name__} -> {self.value}"
+        return f"{self.__class__.__name__} -> {self.id}"
     
 @dataclass
-class Index(Node):
+class AccessArray(Expression):
     array: str
-    child: Node = None
+    indexes: list[Expression] = None
+    type: Type = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.array}"
 
 @dataclass
-class FunctionCall(Node):
+class FunctionCall(Expression):
     name: str
-    children: list = None
+    arguments: list[Expression] = None
+    type: Type = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
 
-@dataclass
-class ArgumentsList(Node):
-    children: list = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}"
-
 def print_ast(node, indent=0):
-    if isinstance(node, Node):
+    if isinstance(node, ProgramNode):
         print('\t' * indent + str(node))
         if hasattr(node, 'children') and node.children:
             for child in node.children:
                 print_ast(child, indent + 1)
-        if hasattr(node, 'child') and node.child:
-            print_ast(node.child, indent + 1)
-    else:
+    elif isinstance(node, Statement):
         print('\t' * indent + str(node))
+        if hasattr(node, 'parameters') and node.parameters:
+            for parameter in node.parameters:
+                print_ast(parameter, indent + 1)
+        if hasattr(node, 'return_type') and node.return_type:
+            print_ast(node.return_type, indent + 1)
+        if hasattr(node, 'block') and node.block:
+            print_ast(node.block, indent + 1)
+        if hasattr(node, 'condition') and node.condition:
+            print_ast(node.condition, indent + 1)
+        if hasattr(node, 'b1') and node.b1:
+            print_ast(node.b1, indent + 1)
+        if hasattr(node, 'b2') and node.b2:
+            print_ast(node.b2, indent + 1)
+        if hasattr(node, 'type') and node.type:
+            print_ast(node.type, indent + 1)
+        if hasattr(node, 'expression') and node.expression:
+            print_ast(node.expression, indent + 1)
+        if hasattr(node, 'statements') and node.statements:
+            for statement in node.statements:
+                print_ast(statement, indent + 1)
+        if hasattr(node, 'left') and node.left:
+            print_ast(node.left, indent + 1)
+        if hasattr(node, 'right') and node.right:
+            print_ast(node.right, indent + 1)	
+        if hasattr(node, 'arguments') and node.arguments:
+            for argument in node.arguments:
+                print_ast(argument, indent + 1)
+        if hasattr(node, 'indexes') and node.indexes:
+            for index in node.indexes:
+                print_ast(index, indent + 1)
+    elif isinstance(node, Type):
+        print('\t' * indent + str(node))
+        if hasattr(node, 'subtype') and node.subtype:
+            print_ast(node.subtype, indent + 1)
+    elif isinstance(node, Expression):
+        print('\t' * indent + str(node))
+        if hasattr(node, 'elements'):
+            for element in node.elements:
+                print_ast(element, indent + 1)
+    else:
+        print(f"node {str(node)} not found")
