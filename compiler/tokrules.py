@@ -102,15 +102,15 @@ def t_DOUBLE_LITERAL(t):
     return t
 
 def t_INT_LITERAL(t):
-    r'\d+'
+    r'[0-9]([0-9]|_[0-9])*'
     return t
 
 def t_STRING_LITERAL(t):
-    r'\".*\"|\'.*\''
+    r'\"([^\\\"]|\\.)*\"|\'.*\''
     return t
 
 def t_ID(t):
-    r'[a-zA-Z_][a-zA-Z0-9_]*'
+    r'[a-zA-Z_][a-zA-Z0-9_]+'
     t.type = reserved.get(t.value.lower(),'ID')
     return t
 

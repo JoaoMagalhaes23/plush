@@ -29,16 +29,8 @@ if see_parser:
 yacc.yacc()
 ast = yacc.parse(data)
 
+verify(Context(), ast)
+
 print_ast(ast)
 
-#verify(Context(), ast)
-
 print("Verified")
-
-# with open(path, 'r') as f:
-#     lex.input(f.read())
-#     while True:
-#         tok = lex.token()
-#         if not tok:
-#             break
-#         print(tok)

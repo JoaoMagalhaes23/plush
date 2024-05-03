@@ -16,7 +16,7 @@ def p_start(p):
     '''
     start : top_level_declarations
     '''
-    p[0] = ProgramNode(children=p[1])
+    p[0] = ProgramNode(statements=p[1])
 
 def p_top_level_declarations(p):
     '''

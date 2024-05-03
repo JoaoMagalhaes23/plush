@@ -3,21 +3,34 @@ from dataclasses import dataclass
 
 @dataclass
 class FunctionDeclarationSignature:
-    parameters: list
-    return_type: Node
+    parameters: list[Statement]
+    return_type: Type
 
 @dataclass
 class FunctionSignature:
-    parameters: list
-    return_type: Node
+    parameters: list[Statement]
+    return_type: Type
 
 @dataclass
 class MutableVariableDefinition:
-    type: Node
+    type: Type
 
 @dataclass
 class ImmutableVariableDefinition:
-    type: Node
+    type: Type
+
+@dataclass
+class MutableParameterDefinition:
+    type: Type
+
+@dataclass
+class ImmutableParameterDefinition:
+    type: Type
+
+@dataclass
+class ReturnStatement:
+    function_name: str
+    type: Type
 
 class TypeError(Exception):
     pass
@@ -25,61 +38,56 @@ class TypeError(Exception):
 class Context(object):
     def __init__(self):
         self.stack = [{}]
-    
-    def get_type(self, name):
-        for scope in self.stack:
-            if name in scope:
-                return scope[name]
-        raise TypeError(f"Variable {name} is not in context")
-    
-    def set_function_signature_in_scope(self, name, parameters, return_type):
-        scope = self.stack[0]
-        scope[name] = FunctionSignature(parameters, return_type)
-    
-    def set_function_declaration_signature_in_scope(self, name, parameters, return_type):
-        scope = self.stack[0]
-        scope[name] = FunctionDeclarationSignature(parameters, return_type)
-    
-    def set_mutable_variable_type(self, name, type):
-        scope = self.stack[0]
-        scope[name] = MutableVariableDefinition(type)
-    
-    def set_immutable_variable_type(self, name, type):
-        scope = self.stack[0]
-        scope[name] = ImmutableVariableDefinition(type)
-
-    def check_assign(self, name, type):
+    def get_mutable_variable_type(self, name: str):
         for scope in self.stack:
             temp = scope.get(name)
-            if isinstance(temp, MutableVariableDefinition):
-                if temp.type != type:
-                    raise TypeError(f"Variable {name} has type {temp.type} but it was given {type}")
-                return
-            if isinstance(temp, ImmutableVariableDefinition):
+            if isinstance(temp, MutableVariableDefinition) or isinstance(temp, MutableParameterDefinition) or isinstance(temp, ReturnStatement):
+                return temp.type
+            elif isinstance(temp, ImmutableVariableDefinition) or isinstance(temp, ImmutableParameterDefinition):
                 raise TypeError(f"Variable {name} is immutable")
         raise TypeError(f"Variable {name} is not in context")
     
-    def has_variable(self, name):
-        for scope in self.stack:
-            temp = scope.get(name)
-            if isinstance(temp, MutableVariableDefinition) or isinstance(temp, ImmutableVariableDefinition):
-                return True
-        return False
+    def set_function_signature_in_scope(self, name: str, parameters: list[Statement], return_type: Type):
+        scope = self.stack[0]
+        scope[name] = FunctionSignature(parameters=parameters, return_type=return_type)
     
-    def check_identifier(self, name, type):
+    def set_function_declaration_signature_in_scope(self, name: str, parameters: list[Statement], return_type: Type):
+        scope = self.stack[0]
+        scope[name] = FunctionDeclarationSignature(parameters=parameters, return_type=return_type)
+    
+    def set_mutable_variable_type(self, name: str, type: Type):
+        scope = self.stack[0]
+        scope[name] = MutableVariableDefinition(type=type)
+    
+    def set_immutable_variable_type(self, name: str, type: Type):
+        scope = self.stack[0]
+        scope[name] = ImmutableVariableDefinition(type=type)
+    
+    def set_parameters_in_scope(self, parameters: list[Statement]):
+        scope = self.stack[0]
+        for param in parameters:
+            if isinstance(param, MutableParameter):
+                scope[param.name] = MutableParameterDefinition(type=param.type)
+            else:
+                scope[param.name] = ImmutableParameterDefinition(type=param.type)
+                
+    def set_return_in_scope(self, function_name: str, type: Type):
+        scope = self.stack[0]
+        scope[function_name] = ReturnStatement(function_name=function_name, type=type)
+    
+    def get_variable(self, name: str):
         for scope in self.stack:
             temp = scope.get(name)
-            if isinstance(temp, MutableVariableDefinition) or isinstance(temp, ImmutableVariableDefinition):
-                if temp.type != type:
-                    raise TypeError(f"Variable {name} has type {temp.type} but has given {type}")
-                return
+            if isinstance(temp, MutableVariableDefinition) or isinstance(temp, ImmutableVariableDefinition)  or isinstance(temp, MutableParameterDefinition) or isinstance(temp, ImmutableParameterDefinition):
+                return temp.type
+        raise TypeError(f"Variable {name} is not in context")
             
-    def check_if_function_name_exists(self, name, parameters, return_type):
+    def check_if_function_signature_exists(self, name: str, parameters: list[Statement], return_type: Type):
         scope = self.stack[0]
         temp = scope.get(name)
         if temp is not None:
             if isinstance(temp, FunctionSignature):
-                raise TypeError(f"Function {name} already been declared")
+                raise TypeError(f"Function {name} already been defined")
             if isinstance(temp, MutableVariableDefinition) or isinstance(temp, ImmutableVariableDefinition):
                 raise TypeError(f"The name {name} already been used as a variable")
             if isinstance(temp, FunctionDeclarationSignature):
@@ -92,19 +100,19 @@ class Context(object):
                     raise TypeError(f"Function {name} declaration has return type {temp.return_type} but it was given {return_type}")
         return temp
 
-    def check_function_call(self, name, arguments):
+    def check_function_call(self, name: str, arguments: list[Expression]):
         for scope in self.stack:
             temp = scope.get(name)
             if isinstance(temp, FunctionSignature) or isinstance(temp, FunctionDeclarationSignature):
                 if len(temp.parameters) != len(arguments):
                     raise TypeError(f"Function {name} has {len(temp.parameters)} parameters but it was given {len(arguments)}")
                 for i in range(len(arguments)):
-                    if temp.parameters[i].child != arguments[i]:
-                        raise TypeError(f"Function {name} has parameter {temp.parameters[i].child} but it was given {arguments[i]}")
+                    if temp.parameters[i].type != arguments[i]:
+                        raise TypeError(f"Function {name} has parameter {temp.parameters[i].type} but it was given {arguments[i]}")
                 return temp.return_type
         raise TypeError(f"Function {name} is not in context or the number of parameters is wrong")   
     
-    def has_name_in_current_scope(self, name):
+    def has_name_in_current_scope(self, name: str):
         return name in self.stack[0]
 
     def enter_scope(self):
@@ -113,179 +121,221 @@ class Context(object):
     def exit_scope(self):
         self.stack.pop(0)
 
-def verify(ctx:Context, node: Node, type = None):
-    if isinstance(node, ProgramNode):
-        return verifyProgramNode(ctx, node)
-    elif isinstance(node, ImmutableVariable):
-        return verifyImmutableVariable(ctx, node)
-    elif isinstance(node, MutableVariable):
-        return verifyMutableVariable(ctx, node)
-    elif isinstance(node, Assign):
-        return verifyAssign(ctx, node)
-    elif isinstance(node, Index):
-        return verifyIndex(ctx, node)
-    elif isinstance(node, Function):
-        return verifyFunction(ctx, node)
-    elif isinstance(node, NotOp):
-        return verifyNotOp(ctx, node)
-    elif isinstance(node, UnaryOp):
-        return verifyUnaryOp(ctx, node)
-    elif isinstance(node, BinaryOp):
-        return verifyBinaryOp(ctx, node)
-    elif isinstance(node, If):
-        return verifyIf(ctx, node)
-    elif isinstance(node, While):
-        return verifyWhile(ctx, node)
-    elif isinstance(node, IntLiteral):
-        return verifyIntLiteral()
-    elif isinstance(node, BooleanLiteral):
-        return verifyBooleanLiteral()
-    elif isinstance(node, DoubleLiteral):
-        return verifyDoubleLiteral()
-    elif isinstance(node, StringLiteral):
-        return verifyStringLiteral()
-    elif isinstance(node, CharLiteral):
-        return verifyCharLiteral()
-    elif isinstance(node, FloatLiteral):
-        return verifyFloatLiteral()
-    elif isinstance(node, Identifier):
-        return verifyIdentifier(ctx, node)
-    elif isinstance(node, Block):
-        return verifyBlock(ctx, node)
-    elif isinstance(node, FunctionCall):
-        return verifyFunctionCall(ctx, node)
-    elif isinstance(node, ArgumentsList):
-        return verifyArgumentsList(ctx, node)
-    elif isinstance(node, ArrayLiteral):
-        return verifyArrayLiteral(ctx, node)
-    else:
-        raise TypeError(f"Node {node} nao reconhecido")
-        
-def verifyProgramNode(ctx: Context, node: Node):
-    for decl in node.children:
-        verify(ctx, decl)
+def verify(ctx: Context, ast: ProgramNode):
+    for stmt in ast.statements:
+        verifyStatement(ctx=ctx, stmt=stmt)
 
-def verifyImmutableVariable(ctx: Context, node: Node):
-    if ctx.has_name_in_current_scope(node.name):
+def verifyStatement(ctx: Context, stmt: Statement):
+    if isinstance(stmt, ImmutableVariable):
+        return verifyImmutableVariable(ctx=ctx, node=stmt)
+    elif isinstance(stmt, MutableVariable):
+        return verifyMutableVariable(ctx=ctx, node=stmt)
+    elif isinstance(stmt, Assign):
+        return verifyAssign(ctx=ctx, node=stmt)
+    elif isinstance(stmt, Function):
+        return verifyFunction(ctx=ctx, node=stmt)
+    elif isinstance(stmt, Block):
+        return verifyBlock(ctx=ctx, node=stmt)
+    elif isinstance(stmt, If):
+        return verifyIf(ctx=ctx, node=stmt)
+    elif isinstance(stmt, While):
+        return verifyWhile(ctx=ctx, node=stmt)
+
+def verifyExpression(ctx: Context, expression: Expression, type: Type=None):
+    if isinstance(expression, IntLiteral):
+        return verifyIntLiteral(type=type)
+    elif isinstance(expression, BooleanLiteral):
+        return verifyBooleanLiteral(type=type)
+    elif isinstance(expression, DoubleLiteral):
+        return verifyDoubleLiteral(type=type)
+    elif isinstance(expression, StringLiteral):
+        return verifyStringLiteral(type=type)
+    elif isinstance(expression, CharLiteral):
+        return verifyCharLiteral(type=type)
+    elif isinstance(expression, FloatLiteral):
+        return verifyFloatLiteral(type=type)
+    elif isinstance(expression, ArrayLiteral):
+        return verifyArrayLiteral(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, BinaryOp):
+        return verifyBinaryOp(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, NotOp):
+        return verifyNotOp(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, UnaryOp):
+        return verifyUnaryOp(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, Group):
+        return verifyGroup(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, Identifier):
+        return verifyIdentifier(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, FunctionCall):
+        return verifyFunctionCall(ctx=ctx, node=expression, type=type)
+    elif isinstance(expression, AccessArray):
+        return verifyAccessArray(ctx=ctx, node=expression, type=type)
+    
+def verifyProgramNode(ctx: Context, node: ProgramNode):
+    for stmt in node.children:
+        verifyStatement(ctx = ctx, stmt = stmt)
+
+def verifyImmutableVariable(ctx: Context, node: ImmutableVariable):
+    if ctx.has_name_in_current_scope(name=node.name):
         raise TypeError(f"{node.name} already been declared")
-    variable_type = node.children[0]
-    ctx.set_immutable_variable_type(node.name, variable_type)
-    expression_type = verify(ctx, node.children[1])
-    if expression_type != variable_type:
-        raise TypeError(f"Variable {node.name} has type {variable_type} but it was given {expression_type}")
+    verifyExpression(ctx=ctx, expression=node.expression, type=node.type)
+    ctx.set_immutable_variable_type(name=node.name, type=node.type)
 
-def verifyMutableVariable(ctx: Context, node: Node):
-    if ctx.has_name_in_current_scope(node.name):
+def verifyMutableVariable(ctx: Context, node: MutableVariable):
+    if ctx.has_name_in_current_scope(name=node.name):
         raise TypeError(f"{node.name} already been declared")
-    variable_type = node.children[0]
-    ctx.set_mutable_variable_type(node.name, variable_type)
-    expression_type = verify(ctx, node.children[1])
-    if expression_type != variable_type:
-        raise TypeError(f"Variable {node.name} has type {variable_type} but it was given {expression_type}")
+    verifyExpression(ctx=ctx, expression=node.expression, type=node.type)
+    ctx.set_mutable_variable_type(name=node.name, type=node.type)
 
-def verifyAssign(ctx: Context, node: Node):
-    expression_type = verify(ctx, node.children[0])
-    ctx.check_assign(node.name, expression_type)
+def verifyAssign(ctx: Context, node: Assign):
+    type = ctx.get_mutable_variable_type(name=node.name)
+    verifyExpression(ctx=ctx, expression=node.expression, type=type)
 
-def verifyIndex(ctx: Context, node: Node):
-    index_type = verify(ctx, node.child[0])
-    if not isinstance(index_type, IntType):
-        raise TypeError(f"The index can only be an integer")
-    return ctx.get_type(node.array)
-
-def verifyNotOp(ctx: Context, node: Node):
-    child_type = verify(ctx, node.children[0])
-    if not isinstance(child_type, BooleanType):
-        raise TypeError(f"Operation not can only be applied to boolean types")
-    return child_type
-
-def verifyUnaryOp(ctx: Context, node: Node):
-    child_type = verify(ctx, node.children[0])
-    if not isinstance(child_type, IntType) and not isinstance(child_type, FloatType) and not isinstance(child_type, DoubleType):
-        raise TypeError(f"Unary operation can only be applied to numeric types")
-    return child_type
-
-def verifyBinaryOp(ctx: Context, node: Node):
-    left_type = verify(ctx, node.children[0])
-    right_type = verify(ctx, node.children[1])
-    if left_type != right_type:
-        raise TypeError(f"Operation {node.op} can only be applied to the same types")
-    operation = node.op
-    if operation in ['+', '-', '*', '/', '^', '%']:
-        if not isinstance(left_type, IntType) and not isinstance(left_type, FloatType) and not isinstance(left_type, DoubleType):
-            raise TypeError(f"Operation {operation} can only be applied to numeric types")
-        return left_type
-    elif operation in ['<', '>', '<=', '>=', '=', '!=', '&&', '||']:
-        return BooleanType()
-
-def verifyFunction(ctx: Context, node: Node):
-    function_name = node.name
-    parameters_list = node.children[0] 
-    verify(ctx, parameters_list) # verify parameters
-    return_type = node.children[1] # verify return
-    t = ctx.check_if_function_name_exists(function_name, parameters_list.children, return_type)
-    if len(node.children) == 3:
-        ctx.set_function_signature_in_scope(function_name, parameters_list.children, return_type)
+def verifyFunction(ctx: Context, node: Function):
+    seen = set()
+    if(any(i.name in seen or seen.add(i.name) for i in node.parameters)):
+        raise TypeError(f"Function {node.name} has repeated parameters")
+    ctx_func = ctx.check_if_function_signature_exists(name=node.name, parameters=node.parameters, return_type=node.return_type)
+    if node.block is not None:
+        ctx.set_function_signature_in_scope(name=node.name, parameters=node.parameters, return_type=node.return_type)
         ctx.enter_scope()
-        verify(ctx, node.children[2]) # verify block
+        ctx.set_parameters_in_scope(parameters=node.parameters)
+        ctx.set_return_in_scope(function_name=node.name, type=node.return_type)
+        verifyStatement(ctx=ctx, stmt=node.block)
         ctx.exit_scope()
     else:
-        if isinstance(t, FunctionDeclarationSignature):
-            raise TypeError(f"Function {function_name} already been declared")
-        ctx.set_function_declaration_signature_in_scope(function_name, parameters_list.children, return_type)
+        if isinstance(ctx_func, FunctionDeclarationSignature):
+            raise TypeError(f"Function {node.name} already been declared")
+        ctx.set_function_declaration_signature_in_scope(name=node.name, parameters=node.parameters, return_type=node.return_type)
 
-def verifyIf(ctx: Context, node: Node):
-    condition_type = verify(ctx, node.children[0])
-    if condition_type != BooleanType():
-        raise TypeError(f"If condition must be boolean")
-    verify(ctx, node.children[1])
-    if len(node.children) == 3:
-        verify(ctx, node.children[2])
-
-def verifyWhile(ctx: Context, node: Node):
-    condition_type = verify(ctx, node.children[0])
-    if condition_type != BooleanType():
-        raise TypeError(f"While condition must be boolean")
-    verify(ctx, node.children[1])
-    
-def verifyBlock(ctx: Context, node: Node):
+def verifyBlock(ctx: Context, node: Block):
     ctx.enter_scope()
-    for st in node.children:
-        verify(ctx, st)
+    for stmt in node.statements:
+        verifyStatement(ctx=ctx, stmt=stmt)
     ctx.exit_scope()
-    
-def verifyIdentifier(ctx: Context, node: Node):
-    value = node.value
-    if not ctx.has_variable(value):
-        raise TypeError(f"Variable {value} is not in context")
-    return ctx.get_type(value).type
 
-def verifyFunctionCall(ctx: Context, node: Node):
-    arguments = verify(ctx, node.children[0])
-    return ctx.check_function_call(node.name, arguments)
+def verifyIf(ctx: Context, node: If):
+    verifyExpression(ctx=ctx, expression=node.condition, type=BooleanType())
+    verifyStatement(ctx=ctx, stmt=node.b1)
+    if node.b2 is not None:
+        verifyStatement(ctx=ctx, stmt=node.b2)
 
-def verifyArgumentsList(ctx: Context, node: Node):
-    return [verify(ctx, arg) for arg in node.children]
+def verifyWhile(ctx: Context, node: While):
+    verifyExpression(ctx=ctx, expression=node.condition, type=BooleanType())
+    verifyStatement(ctx=ctx, stmt=node.block)
+
+def verifyBinaryOp(ctx: Context, node: BinaryOp, type: Type):
+    first_type = verifyExpression(ctx=ctx, expression=node.left_expression)
+    verifyExpression(ctx=ctx, expression=node.right_expression, type=first_type)
+    node.type = type
+    operation = node.op
+    if operation in ['+', '-', '*', '/', '^', '%']:
+        if not isinstance(type, IntType) and not isinstance(type, FloatType) and not isinstance(type, DoubleType):
+            raise TypeError(f"Operation {operation} can only be applied to numeric types")
+    elif operation in ['&&', '||']:
+        if not isinstance(type, BooleanType):
+            raise TypeError(f"Operation {operation} can only be applied to boolean types")
+
+def verifyNotOp(ctx: Context, node: NotOp, type: Type = None):
+    if type is not None:
+        verifyExpression(ctx=ctx, expression=node.expression, type=type)
+    else:
+        type = verifyExpression(ctx=ctx, expression=node.expression)
+        if not isinstance(type, BooleanType):
+            raise TypeError(f"Unary operation can only be applied to boolean types")
+        node.type = type
+        return type
+
+def verifyUnaryOp(ctx: Context, node: UnaryOp, type: Type = None):
+    if type is not None:
+        if isinstance(type, ArrayType) or isinstance(type, StringType) or isinstance(type, CharType) or isinstance(type, BooleanType):
+            raise TypeError(f"Unary operation can only be applied to numeric types")
+        verifyExpression(ctx=ctx, expression=node.expression, type=type)
+        node.type = type
+    else:
+        type = verifyExpression(ctx=ctx, expression=node.expression)
+        if isinstance(type, ArrayType) or isinstance(type, StringType) or isinstance(type, CharType) or isinstance(type, BooleanType):
+            raise TypeError(f"Unary operation can only be applied to numeric types")
+        node.type = type
+        return type
+
+def verifyGroup(ctx: Context, node: Group, type: Type = None):
+    if type is not None:
+        verifyExpression(ctx=ctx, expression=node.expression, type=type)
+        node.type = type
+    else:
+        node.type = verifyExpression(ctx=ctx, expression=node.expression)
+        return node.type
+
+def verifyIdentifier(ctx: Context, node: Identifier, type: Type = None):
+    id_type = ctx.get_variable(name=node.id)
+    node.type = id_type
+    if type is not None:
+        if id_type != type:
+            raise TypeError(f"The variable {node.id} is not of type {type}")
+    else:
+        return id_type
+
+def verifyFunctionCall(ctx: Context, node: FunctionCall, type: Type = None):
+    arguments=[]
+    for arg in node.arguments:
+        arguments.append(verifyExpression(ctx=ctx, expression=arg))
+    return_type = ctx.check_function_call(name=node.name, arguments=arguments)
+    node.type = return_type
+    if type is not None:
+        if return_type != type:
+            raise TypeError(f"The function {node.name} returns {return_type} but it was expected {type}")
+    else:
+        return return_type
+
+def verifyAccessArray(ctx: Context, node: AccessArray, type: Type):
+    array_type = ctx.get_variable(name=node.array)
+    if not isinstance(array_type, ArrayType):
+        raise TypeError(f"The variable {node.array} is not an array")
+    for _ in node.indexes:
+        try:
+            array_type=array_type.subtype
+        except AttributeError:
+            raise TypeError(f"Its impossible to do that many indexes in array {node.array}")
+    if array_type != type:
+        raise TypeError(f"The type given is not the same as the result of indexing the array")
 
 ## Verify Literal Types
 
-def verifyArrayLiteral(ctx: Context, node: Node):
-    pass
+def verifyArrayLiteral(ctx: Context, node: ArrayLiteral, type: Type):
+    if not isinstance(type, ArrayType):
+        raise TypeError(f"It was needed a {type} but it was given ArrayType")
+    if node.elements is not None:
+        for element in node.elements:
+            verifyExpression(ctx=ctx, expression=element, type=type.subtype)
+    return type
 
-def verifyIntLiteral():
+def verifyIntLiteral(type: Type = None):
+    if type is not None and not isinstance(type, IntType):
+        raise TypeError(f"It was needed a {type} but it was given IntType")
     return IntType()
 
-def verifyBooleanLiteral():
+def verifyBooleanLiteral(type: Type = None):
+    if type is not None and not isinstance(type, BooleanType):
+        raise TypeError(f"It was needed a {type} but it was given BooleanType")
     return BooleanType()
 
-def verifyDoubleLiteral():
+def verifyDoubleLiteral(type: Type = None):
+    if type is not None and not isinstance(type, DoubleType):
+        raise TypeError(f"It was needed a {type} but it was given DoubleType")
     return DoubleType()
 
-def verifyStringLiteral():
+def verifyStringLiteral(type: Type = None):
+    if not isinstance(type, StringType):
+        raise TypeError(f"It was needed a {type} but it was given StringType")
     return StringType()
 
-def verifyCharLiteral():
+def verifyCharLiteral(type: Type = None):
+    if type is not None and not isinstance(type, CharType):
+        raise TypeError(f"It was needed a {type} but it was given CharType")
     return CharType()
 
-def verifyFloatLiteral():
+def verifyFloatLiteral(type: Type = None):
+    if type is not None and not isinstance(type, FloatType):
+        raise TypeError(f"It was needed a {type} but it was given FloatType")
     return FloatType()

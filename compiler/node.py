@@ -19,7 +19,7 @@ class Expression(Node):
 
 @dataclass
 class ProgramNode(Node):
-    children: list = None
+    statements: list[Statement] = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
@@ -32,7 +32,6 @@ class ImmutableVariable(Statement):
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
-
 
 @dataclass
 class MutableVariable(Statement):
@@ -54,7 +53,7 @@ class Assign(Statement):
 @dataclass
 class Function(Statement):
     name: str
-    parameters: list = None
+    parameters: list[Statement] = None
     return_type: Type = None
     block: Statement = None
     def __str__(self):
@@ -78,7 +77,7 @@ class ImmutableParameter(Statement):
 
 @dataclass
 class Block(Statement):
-    statements: list = None
+    statements: list[Statement] = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
@@ -251,11 +250,15 @@ class FunctionCall(Expression):
 def print_ast(node, indent=0):
     if isinstance(node, ProgramNode):
         print('\t' * indent + str(node))
-        if hasattr(node, 'children') and node.children:
-            for child in node.children:
+        if node.statements:
+            for child in node.statements:
                 print_ast(child, indent + 1)
     elif isinstance(node, Statement):
         print('\t' * indent + str(node))
+        if hasattr(node, 'expression') and node.expression:
+            print_ast(node.expression, indent + 1)
+        if hasattr(node, 'type') and node.type:
+            print_ast(node.type, indent + 1)
         if hasattr(node, 'parameters') and node.parameters:
             for parameter in node.parameters:
                 print_ast(parameter, indent + 1)
@@ -263,29 +266,15 @@ def print_ast(node, indent=0):
             print_ast(node.return_type, indent + 1)
         if hasattr(node, 'block') and node.block:
             print_ast(node.block, indent + 1)
+        if hasattr(node, 'statements') and node.statements:
+            for statement in node.statements:
+                print_ast(statement, indent + 1)
         if hasattr(node, 'condition') and node.condition:
             print_ast(node.condition, indent + 1)
         if hasattr(node, 'b1') and node.b1:
             print_ast(node.b1, indent + 1)
         if hasattr(node, 'b2') and node.b2:
             print_ast(node.b2, indent + 1)
-        if hasattr(node, 'type') and node.type:
-            print_ast(node.type, indent + 1)
-        if hasattr(node, 'expression') and node.expression:
-            print_ast(node.expression, indent + 1)
-        if hasattr(node, 'statements') and node.statements:
-            for statement in node.statements:
-                print_ast(statement, indent + 1)
-        if hasattr(node, 'left') and node.left:
-            print_ast(node.left, indent + 1)
-        if hasattr(node, 'right') and node.right:
-            print_ast(node.right, indent + 1)	
-        if hasattr(node, 'arguments') and node.arguments:
-            for argument in node.arguments:
-                print_ast(argument, indent + 1)
-        if hasattr(node, 'indexes') and node.indexes:
-            for index in node.indexes:
-                print_ast(index, indent + 1)
     elif isinstance(node, Type):
         print('\t' * indent + str(node))
         if hasattr(node, 'subtype') and node.subtype:
@@ -293,7 +282,22 @@ def print_ast(node, indent=0):
     elif isinstance(node, Expression):
         print('\t' * indent + str(node))
         if hasattr(node, 'elements'):
-            for element in node.elements:
-                print_ast(element, indent + 1)
+            if node.elements is not None:
+                for element in node.elements:
+                    print_ast(element, indent + 1)
+        if hasattr(node, 'expression') and node.expression:
+            print_ast(node.expression, indent + 1)
+        if hasattr(node, 'left_expression') and node.left_expression:
+            print_ast(node.left_expression, indent + 1)
+        if hasattr(node, 'right_expression') and node.right_expression:
+            print_ast(node.right_expression, indent + 1)	
+        if hasattr(node, 'type') and node.type:
+            print_ast(node.type, indent + 1)
+        if hasattr(node, 'indexes') and node.indexes:
+            for index in node.indexes:
+                print_ast(index, indent + 1)
+        if hasattr(node, 'arguments') and node.arguments:
+            for argument in node.arguments:
+                print_ast(argument, indent + 1)
     else:
         print(f"node {str(node)} not found")
