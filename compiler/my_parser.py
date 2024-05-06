@@ -32,7 +32,6 @@ def p_top_level_declarations(p):
 def p_top_level_declaration(p):
     '''
     top_level_declaration   : create_variable SEMICOLON
-                            | assign SEMICOLON
                             | function
     '''
     p[0] = p[1]
@@ -342,6 +341,7 @@ def p_arguments_list(p):
 
 def p_error(p):
     if p:
-        print("Syntax error at token %s" % p.value)
+        raise Exception(f"Syntax error at token {p.value} that is at line {p.lineno}")
     else:
         print("Syntax error at EOF")
+        raise Exception("Syntax error at EOF")

@@ -35,9 +35,17 @@ class ReturnStatement:
 class TypeError(Exception):
     pass
 
+context_values = {
+    "print_int": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=IntType())], return_type=VoidType()),
+    "print_double": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=DoubleType())], return_type=VoidType()),
+    "print_string": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=StringType())], return_type=VoidType()),
+    "print_char": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=CharType())], return_type=VoidType()),
+    "print_bool": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=BooleanType())], return_type=VoidType()),
+}
+
 class Context(object):
     def __init__(self):
-        self.stack = [{}]
+        self.stack = [context_values]
     def get_mutable_variable_type(self, name: str):
         for scope in self.stack:
             temp = scope.get(name)
@@ -140,6 +148,8 @@ def verifyStatement(ctx: Context, stmt: Statement):
         return verifyIf(ctx=ctx, node=stmt)
     elif isinstance(stmt, While):
         return verifyWhile(ctx=ctx, node=stmt)
+    elif isinstance(stmt, FunctionCall):
+        return verifyFunctionCall(ctx=ctx, node=stmt)
 
 def verifyExpression(ctx: Context, expression: Expression, type: Type=None):
     if isinstance(expression, IntLiteral):
@@ -190,6 +200,7 @@ def verifyMutableVariable(ctx: Context, node: MutableVariable):
 def verifyAssign(ctx: Context, node: Assign):
     type = ctx.get_mutable_variable_type(name=node.name)
     verifyExpression(ctx=ctx, expression=node.expression, type=type)
+    node.type = type
 
 def verifyFunction(ctx: Context, node: Function):
     seen = set()

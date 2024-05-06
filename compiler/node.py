@@ -46,6 +46,7 @@ class MutableVariable(Statement):
 class Assign(Statement):
     name: str
     expression: Expression = None
+    type: Type = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"
