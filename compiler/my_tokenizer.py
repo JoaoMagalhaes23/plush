@@ -110,13 +110,12 @@ def t_STRING_LITERAL(t):
     return t
 
 def t_ID(t):
-    r'[a-zA-Z_][a-zA-Z0-9_]+'
+    r'_*[a-zA-Z][a-zA-Z0-9_]*'
     t.type = reserved.get(t.value.lower(),'ID')
     return t
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
-    t.lexer.skip(1)
+    raise Exception(f"Illegal character {t.value[0]}") 
     
 def t_newline(t):
     r'\n+'

@@ -169,56 +169,55 @@ class VoidType(Type):
 @dataclass
 class ArrayType(Type):
     subtype: Type = None
-
     def __str__(self):
         return f"{self.__class__.__name__}"
 
 @dataclass
 class StringLiteral(Expression):
     value: str
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
 class IntLiteral(Expression):
     value: int
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
 class DoubleLiteral(Expression):
     value: float
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
 class BooleanLiteral(Expression):
     value: bool
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
 class CharLiteral(Expression):
     value: str
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
 class FloatLiteral(Expression):
     value: float
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
 class ArrayLiteral(Expression):
     elements: list[Expression] = None
-
+    type: Type = None
     def __str__(self):
         return f"{self.__class__.__name__}"
 

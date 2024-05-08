@@ -153,17 +153,17 @@ def verifyStatement(ctx: Context, stmt: Statement):
 
 def verifyExpression(ctx: Context, expression: Expression, type: Type=None):
     if isinstance(expression, IntLiteral):
-        return verifyIntLiteral(type=type)
+        return verifyIntLiteral(node=expression, type=type)
     elif isinstance(expression, BooleanLiteral):
-        return verifyBooleanLiteral(type=type)
+        return verifyBooleanLiteral(node=expression, type=type)
     elif isinstance(expression, DoubleLiteral):
-        return verifyDoubleLiteral(type=type)
+        return verifyDoubleLiteral(node=expression, type=type)
     elif isinstance(expression, StringLiteral):
-        return verifyStringLiteral(type=type)
+        return verifyStringLiteral(node=expression, type=type)
     elif isinstance(expression, CharLiteral):
-        return verifyCharLiteral(type=type)
+        return verifyCharLiteral(node=expression, type=type)
     elif isinstance(expression, FloatLiteral):
-        return verifyFloatLiteral(type=type)
+        return verifyFloatLiteral(node=expression, type=type)
     elif isinstance(expression, ArrayLiteral):
         return verifyArrayLiteral(ctx=ctx, node=expression, type=type)
     elif isinstance(expression, BinaryOp):
@@ -319,34 +319,41 @@ def verifyArrayLiteral(ctx: Context, node: ArrayLiteral, type: Type):
     if node.elements is not None:
         for element in node.elements:
             verifyExpression(ctx=ctx, expression=element, type=type.subtype)
+    node.type = ArrayType()
     return type
 
-def verifyIntLiteral(type: Type = None):
+def verifyIntLiteral(node: Expression, type: Type = None):
     if type is not None and not isinstance(type, IntType):
         raise TypeError(f"It was needed a {type} but it was given IntType")
+    node.type = IntType()
     return IntType()
 
-def verifyBooleanLiteral(type: Type = None):
+def verifyBooleanLiteral(node: Expression, type: Type = None):
     if type is not None and not isinstance(type, BooleanType):
         raise TypeError(f"It was needed a {type} but it was given BooleanType")
+    node.type = BooleanType()
     return BooleanType()
 
-def verifyDoubleLiteral(type: Type = None):
+def verifyDoubleLiteral(node: Expression, type: Type = None):
     if type is not None and not isinstance(type, DoubleType):
         raise TypeError(f"It was needed a {type} but it was given DoubleType")
+    node.type = DoubleType()
     return DoubleType()
 
-def verifyStringLiteral(type: Type = None):
+def verifyStringLiteral(node: Expression, type: Type = None):
     if not isinstance(type, StringType):
         raise TypeError(f"It was needed a {type} but it was given StringType")
+    node.type = StringType()
     return StringType()
 
-def verifyCharLiteral(type: Type = None):
+def verifyCharLiteral(node: Expression, type: Type = None):
     if type is not None and not isinstance(type, CharType):
         raise TypeError(f"It was needed a {type} but it was given CharType")
+    node.type = CharType()
     return CharType()
 
-def verifyFloatLiteral(type: Type = None):
+def verifyFloatLiteral(node: Expression, type: Type = None):
     if type is not None and not isinstance(type, FloatType):
         raise TypeError(f"It was needed a {type} but it was given FloatType")
+    node.type = FloatType()
     return FloatType()

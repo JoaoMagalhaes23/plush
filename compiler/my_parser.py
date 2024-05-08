@@ -344,4 +344,4 @@ def p_error(p):
         raise Exception(f"Syntax error at token {p.value} that is at line {p.lineno}")
     else:
         print("Syntax error at EOF")
-        raise Exception("Syntax error at EOF")
+        #raise Exception("Syntax error at EOF")
