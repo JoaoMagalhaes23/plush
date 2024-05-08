@@ -58,6 +58,8 @@ def run_compiler(path, seeTokens, seeParserAst, seeSemanticAst, seeLLVMcode):
     if seeLLVMcode == "1":
         llvm_code = compiler(ast)
         print(llvm_code)
+        print("#############################################\n")
+
         with open("code.ll", "w") as f:
             f.write(llvm_code)
         import subprocess

@@ -1,6 +1,8 @@
-var actual_min : int := 9;
-function main(val args: int, val x: int): int {
-	actual_min := 7;
-	print_int(actual_min);
+function x(): int {
+	x := 1;
+}
+function main(val args: int): int {
+	val x : int := 1;
+	print_int(x);
 	main := 1;
 }

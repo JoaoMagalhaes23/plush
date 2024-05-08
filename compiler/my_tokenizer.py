@@ -106,7 +106,8 @@ def t_INT_LITERAL(t):
     return t
 
 def t_STRING_LITERAL(t):
-    r'\"([^\\\"]|\\.)*\"|\'.*\''
+    r'\"([^\\\"]|\\.)*\"'
+    t.value = t.value[1:-1] 
     return t
 
 def t_ID(t):

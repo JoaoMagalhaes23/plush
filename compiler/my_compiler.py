@@ -8,12 +8,14 @@ class Variable:
 class Func:
     name: str
     value: any
+
     
 class Emitter(object):
     def __init__(self):
         self.count = 0
         self.lines = []
         self.stack = [{}]
+        self.strings = {}
 
     def enter_scope(self):
         self.stack.append({})
@@ -59,12 +61,26 @@ class Emitter(object):
             if n in scope:
                 return scope[n].value
 
+    def set_string(self, value:str):
+        v = f"@.str{self.get_count()}"
+        self.strings[value] = v
+        return v
+    
+    def get_string(self, value:str):
+        if value in self.strings:
+            return self.strings[value]
+        else:
+            return None
+        
+
 def compiler(ast: ProgramNode, emitter:Emitter=None):
     emitter = Emitter()
     emitter.set_function(n="print_int", value=None)
+    emitter.set_function(n="print_string", value=None)
     for stmt in ast.statements:
         compiler_stmt(node=stmt, emitter=emitter)
     emitter << "declare void @print_int(i32)"
+    emitter << "declare void @print_string(i8*)"
     return emitter.get_code()
 
 def compiler_stmt(node: Statement, emitter: Emitter):
@@ -164,14 +180,27 @@ def compiler_type(node: Type, emitter: Emitter):
         
 def compiler_expr(node: Expression, emitter: Emitter):
     if isinstance(node, IntLiteral):
-        return int(node.value)
+        return str(node.value)
+    elif isinstance(node, FloatLiteral):
+        return str(node.value)
+    elif isinstance(node, BooleanLiteral):
+        return str(node.value)
+    elif isinstance(node, StringLiteral):
+        s = emitter.get_string(value=node.value)
+        string_name = s if s is not None else emitter.set_string(value=node.value)
+        type = f"[{len(node.value)+1} x i8]"
+        if s is None:
+            s = f"{string_name} = private unnamed_addr constant {type} c\"{node.value}\\00\""
+            emitter.lines.insert(0, s)
+        return f" getelementptr inbounds ({type}, {type}* {string_name}, i64 0, i64 0) "
+    elif isinstance(node, CharLiteral):
+        return str(node.value)
     elif isinstance(node, Identifier):
         return compile_identifier(node=node, emitter=emitter)
     else:
         return compiler_expr(node, emitter)
 
 def compile_identifier(node: Identifier, emitter: Emitter):
-    #%7 = load i32, i32* %4, align 4
     obj = emitter.get_obj(n=node.id)
     type = compiler_type(node=node.type, emitter=emitter).get("type")
     id = emitter.get_id()
