@@ -1,4 +1,4 @@
-from node import *
+from node import ProgramNode, MutableVariable, ImmutableVariable, Assign, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, DoubleType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, DoubleLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall 
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
@@ -347,4 +347,3 @@ def p_error(p):
         raise Exception(f"Syntax error at token {p.value} that is at line {p.lineno}")
     else:
         print("Syntax error at EOF")
-        #raise Exception("Syntax error at EOF")

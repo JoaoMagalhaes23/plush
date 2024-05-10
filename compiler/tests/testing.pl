@@ -1,8 +1,6 @@
-function x(): int {
-	x := 1;
-}
+val y: int := 1;
 function main(val args: int): int {
-	val x : int := 1;
-	print_int(x);
+	val x : boolean := !(4 < 3);
+	print_boolean(x);
 	main := 1;
 }
