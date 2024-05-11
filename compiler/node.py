@@ -86,8 +86,8 @@ class Block(Statement):
 @dataclass
 class If(Statement):
     condition: Expression = None
-    b1: Statement = None
-    b2: Statement = None
+    b1: Block = None
+    b2: Block = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
@@ -95,7 +95,7 @@ class If(Statement):
 @dataclass
 class While(Statement):
     condition: Expression = None
-    block: Statement = None
+    block: Block = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"

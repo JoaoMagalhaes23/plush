@@ -1,6 +1,7 @@
-val y: int := 1;
 function main(val args: int): int {
-	val x : boolean := !(4 < 3);
-	print_boolean(x);
-	main := 1;
+	var x: int := 0;
+	while(x < 10) {
+		print_int(x);
+		x := x + 1;
+	}
 }

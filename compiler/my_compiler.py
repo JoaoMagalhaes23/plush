@@ -99,6 +99,10 @@ def compiler_stmt(node: Statement, emitter: Emitter):
         return compile_assign(node=node, emitter=emitter)
     elif isinstance(node, FunctionCall):
         return compile_function_call(node=node, emitter=emitter)
+    elif isinstance(node, If):
+        return compile_if(node=node, emitter=emitter)
+    elif isinstance(node, While):
+        compile_while(node=node, emitter=emitter)
         
 def compile_variable(node: MutableVariable|ImmutableVariable, emitter: Emitter):
     vname = node.name
@@ -140,8 +144,10 @@ def compile_parameter(node: MutableParameter|ImmutableParameter, emitter: Emitte
     return {"type": _type, "name": pname}
 
 def compile_block(node: Block, emitter: Emitter):
+    emitter.enter_scope()
     for stmt in node.statements:
         compiler_stmt(node=stmt, emitter=emitter)
+    emitter.exit_scope()
 
 def compile_assign(node: Assign, emitter: Emitter):
     expr = compiler_expr(node=node.expression, emitter=emitter)
@@ -166,7 +172,35 @@ def compile_function_call(node: FunctionCall, emitter: Emitter):
         emitter << f"{SPACER}call {llvm_type} {function_name}({args_string})"
     else:
         emitter << f"{SPACER}{emitter.get_id()} = call {llvm_type} {function_name}({args_string})"
-        
+
+def compile_if(node: If, emitter: Emitter):
+    cond = compiler_expr(node=node.condition, emitter=emitter)
+    b1 = f"if.then{emitter.get_count()}"
+    end = f"if.end{emitter.get_count()}"
+    b2 = end if node.b2 is None else f"if.else{emitter.get_count()}"
+    emitter << f"{SPACER}br i1 {cond}, label %{b1}, label %{b2}"
+    emitter << f"{b1}:"
+    compiler_stmt(node=node.b1, emitter=emitter)
+    emitter << f"{SPACER}br label %{end}"
+    if node.b2 is not None:
+        emitter << f"{b2}:"
+        compiler_stmt(node=node.b2, emitter=emitter)
+        emitter << f"{SPACER}br label %{end}"
+    emitter << f"{end}:"
+
+def compile_while(node: While, emitter: Emitter):
+    cond_label = f"while.cond{emitter.get_count()}"
+    code_while_body = f"while.body{emitter.get_count()}"
+    code_while_end = f"while.end{emitter.get_count()}"
+    emitter << f"{SPACER}br label %{cond_label}"
+    emitter << f"{cond_label}:"
+    expre = compiler_expr(node=node.condition, emitter=emitter)
+    emitter << f"{SPACER}br i1 {expre}, label %{code_while_body}, label %{code_while_end}"
+    emitter << f"{code_while_body}:"
+    compiler_stmt(node=node.block, emitter=emitter)
+    emitter << f"{SPACER}br label %{cond_label}"
+    emitter << f"{code_while_end}:"
+    
 def compiler_type(node: Type, emitter: Emitter):  
     if isinstance(node, IntType):
         return {"type":"i32", "default_value": 0}
@@ -210,7 +244,7 @@ def compile_string_literal(node: StringLiteral, emitter: Emitter):
     if s is None:
         s = f"{string_name} = private unnamed_addr constant {_type} c\"{node.value}\\00\""
         emitter.lines.insert(0, s)
-    return f" getelementptr inbounds ({_type}, {_type}* {string_name}, i64 0, i64 0) "
+    return f"getelementptr inbounds ({_type}, {_type}* {string_name}, i64 0, i64 0)"
 
 def compile_identifier(node: Identifier, emitter: Emitter):
     obj = emitter.get_obj(n=node.id)

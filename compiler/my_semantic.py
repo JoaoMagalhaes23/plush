@@ -348,7 +348,7 @@ def verify_double_literal(node: Expression, type: Type = None):
     return DoubleType()
 
 def verify_string_literal(node: Expression, type: Type = None):
-    if not isinstance(type, StringType):
+    if type is not None and not isinstance(type, StringType):
         raise TypeError(f"It was needed a {type} but it was given StringType")
     node.type = StringType()
     return StringType()

@@ -9,10 +9,19 @@ main:                                   # @main
 	pushq	%rax
 	.cfi_def_cfa_offset 16
 	movl	%edi, 4(%rsp)
-	movb	$1, 3(%rsp)
-	movl	$1, %edi
-	callq	print_boolean@PLT
-	movl	$1, %eax
+	movl	$0, (%rsp)
+	cmpl	$9, (%rsp)
+	jg	.LBB0_3
+	.p2align	4, 0x90
+.LBB0_2:                                # %while.body3
+                                        # =>This Inner Loop Header: Depth=1
+	movl	(%rsp), %edi
+	callq	print_int@PLT
+	incl	(%rsp)
+	cmpl	$9, (%rsp)
+	jle	.LBB0_2
+.LBB0_3:                                # %while.end4
+	xorl	%eax, %eax
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq
@@ -20,12 +29,4 @@ main:                                   # @main
 	.size	main, .Lfunc_end0-main
 	.cfi_endproc
                                         # -- End function
-	.type	y,@object                       # @y
-	.data
-	.globl	y
-	.p2align	2
-y:
-	.long	1                               # 0x1
-	.size	y, 4
-
 	.section	".note.GNU-stack","",@progbits
