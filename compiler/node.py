@@ -169,6 +169,7 @@ class VoidType(Type):
 @dataclass
 class ArrayType(Type):
     subtype: Type = None
+    size: int = None
     def __str__(self):
         return f"{self.__class__.__name__}"
 
@@ -218,6 +219,7 @@ class FloatLiteral(Expression):
 class ArrayLiteral(Expression):
     elements: list[Expression] = None
     type: Type = None
+    size: int = None
     def __str__(self):
         return f"{self.__class__.__name__}"
 
@@ -279,6 +281,8 @@ def print_ast(node, indent=0):
         print('\t' * indent + str(node))
         if hasattr(node, 'subtype') and node.subtype:
             print_ast(node.subtype, indent + 1)
+        if hasattr(node, 'size') and node.size:
+            print_ast(node.size, indent + 1)
     elif isinstance(node, Expression):
         print('\t' * indent + str(node))
         if hasattr(node, 'elements'):
@@ -299,5 +303,7 @@ def print_ast(node, indent=0):
         if hasattr(node, 'arguments') and node.arguments:
             for argument in node.arguments:
                 print_ast(argument, indent + 1)
+        if hasattr(node, 'size') and node.size:
+            print_ast(node.size, indent + 1)
     else:
         print(f"node {str(node)} not found")

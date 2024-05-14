@@ -1,7 +1,6 @@
+
+val e: [[int]] := {{1, 2}, {3, 4, 5}};
 function main(val args: int): int {
-	var x: int := 0;
-	while(x < 10) {
-		print_int(x);
-		x := x + 1;
-	}
+	print_2d_int_array(e, 2, 5);
+	main := 1;
 }

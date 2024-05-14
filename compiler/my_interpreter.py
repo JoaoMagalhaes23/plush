@@ -13,6 +13,11 @@ class Context(object):
                 return scope[name]
         raise Exception("Variavel {} nao encontrada".format(name))
 
+    def get_function(self, name):
+        scope = self.stack[0]
+        func = scope.get(name)
+        return func
+    
     def enter_scope(self):
         self.stack.append({})
 
@@ -26,18 +31,23 @@ def interpreter(ctx: Context, ast: ProgramNode):
     ctx.exit_scope()
 
 def interpret_statement(ctx: Context, stmt: Statement):
-    if isinstance(stmt, MutableVariable):
+    if isinstance(stmt, MutableVariable) or isinstance(stmt, ImmutableVariable):
         value = interpret_expression(ctx=ctx, expression=stmt.expression, type=stmt.type)
         ctx.set(stmt.name, value)
-    if isinstance(stmt, ImmutableVariable):
-        value = interpret_expression(ctx=ctx, expression=stmt.expression, type=stmt.type)
-        ctx.set(stmt.name, value)
-    if isinstance(stmt, Function):
+    elif isinstance(stmt, If):
+        if interpret_expression(ctx=ctx, expression=stmt.condition, type=stmt.type):
+            interpret_statement(ctx=ctx, stmt=stmt.b1)
+        else:
+            if stmt.b2 is not None:
+                interpret_statement(ctx=ctx, stmt=stmt.b2)
+    elif isinstance(stmt, While):
+        while interpret_expression(ctx=ctx, expression=stmt.condition, type=stmt.type):
+            interpret_statement(ctx=ctx, stmt=stmt.block)
+    elif isinstance(stmt, Function):
+        ctx.set(stmt.name, stmt) 
+    elif isinstance(stmt, FunctionCall):
         pass
-        
     
-        
-        
 def interpret_expression(ctx: Context, expression: Expression, type: Type):
     if isinstance(expression, IntLiteral):
         return int(expression.value)

@@ -68,7 +68,7 @@ def run_compiler(path, see_tokens, see_parser_ast, see_semantic_ast, see_llvm_co
 
         # /usr/local/opt/llvm/bin/lli code.ll
         subprocess.call(
-            "llc code.ll && gcc -c plugin.c && clang code.s plugin.o -o code && ./code",
+            "llc code.ll && clang -c plugin.c && clang -no-pie -fno-PIE code.s plugin.o -o code && ./code",
             shell=True,
         )
     else:

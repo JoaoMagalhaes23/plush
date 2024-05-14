@@ -41,6 +41,8 @@ context_values = {
     "print_string": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=StringType())], return_type=VoidType()),
     "print_char": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=CharType())], return_type=VoidType()),
     "print_boolean": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=BooleanType())], return_type=VoidType()),
+    "print_int_array": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=ArrayType(subtype=IntType())), ImmutableParameter(name="y", type=IntType())], return_type=VoidType()),
+    "print_2d_int_array": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=ArrayType(subtype=ArrayType(subtype=IntType()))), ImmutableParameter(name="y", type=IntType()), ImmutableParameter(name="z", type=IntType())], return_type=VoidType()),
 }
 
 class Context(object):
@@ -91,23 +93,29 @@ class Context(object):
                 return temp.type
         raise TypeError(f"Variable {name} is not in context")
             
-    def check_if_function_signature_exists(self, name: str, parameters: list[Statement], return_type: Type):
+    def check_if_function_signature_exists(self, name: str, parameters: list[Statement], return_type: Type, has_block: bool):
         scope = self.stack[0]
-        temp = scope.get(name)
-        if temp is not None:
-            if isinstance(temp, FunctionSignature):
+        func_in_scope= scope.get(name)
+        if func_in_scope is not None:
+            if isinstance(func_in_scope, FunctionSignature):
                 raise TypeError(f"Function {name} already been defined")
-            if isinstance(temp, MutableVariableDefinition) or isinstance(temp, ImmutableVariableDefinition):
+            if isinstance(func_in_scope, MutableVariableDefinition) or isinstance(func_in_scope, ImmutableVariableDefinition):
                 raise TypeError(f"The name {name} already been used as a variable")
-            if isinstance(temp, FunctionDeclarationSignature):
-                if len(temp.parameters) != len(parameters):
-                    raise TypeError(f"Function {name} declaration  has {len(temp.parameters)} parameters but it was given {len(parameters)}")
+            if isinstance(func_in_scope, FunctionDeclarationSignature):
+                if len(func_in_scope.parameters) != len(parameters):
+                    raise TypeError(f"Function {name} declaration  has {len(func_in_scope.parameters)} parameters but it was given {len(parameters)}")
                 for i in range(len(parameters)):
-                    if temp.parameters[i] != parameters[i]:
-                        raise TypeError(f"Function {name} has parameter {temp.parameters[i]} but it was given {parameters[i]}")
-                if temp.return_type != return_type:
-                    raise TypeError(f"Function {name} declaration has return type {temp.return_type} but it was given {return_type}")
-        return temp
+                    if func_in_scope.parameters[i] != parameters[i]:
+                        raise TypeError(f"Function {name} has parameter {func_in_scope.parameters[i]} but it was given {parameters[i]}")
+                if func_in_scope.return_type != return_type:
+                    raise TypeError(f"Function {name} declaration has return type {func_in_scope.return_type} but it was given {return_type}")
+                self.set_function_signature_in_scope(name=name, parameters=parameters, return_type=return_type)
+        else:
+            if has_block:
+                self.set_function_signature_in_scope(name=name, parameters=parameters, return_type=return_type)
+            else:
+                self.set_function_declaration_signature_in_scope(name=name, parameters=parameters, return_type=return_type)
+                
 
     def check_function_call(self, name: str, arguments: list[Expression]):
         for scope in self.stack:
@@ -116,7 +124,7 @@ class Context(object):
                 if len(temp.parameters) != len(arguments):
                     raise TypeError(f"Function {name} has {len(temp.parameters)} parameters but it was given {len(arguments)}")
                 for i in range(len(arguments)):
-                    if temp.parameters[i].type != arguments[i]:
+                    if type(temp.parameters[i].type) != type(arguments[i]):
                         raise TypeError(f"Function {name} has parameter {temp.parameters[i].type} but it was given {arguments[i]}")
                 return temp.return_type
         raise TypeError(f"Function {name} is not in context or the number of parameters is wrong")   
@@ -131,6 +139,12 @@ class Context(object):
         self.stack.pop(0)
 
 def verify(ctx: Context, ast: ProgramNode):
+    for stmt in ast.statements:
+        if isinstance(stmt, Function):    
+            seen = set()
+            if(any(i.name in seen or seen.add(i.name) for i in stmt.parameters)):
+                raise TypeError(f"Function {stmt.name} has repeated parameters")
+            ctx.check_if_function_signature_exists(name=stmt.name, parameters=stmt.parameters, return_type=stmt.return_type, has_block=stmt.block is not None) 
     for stmt in ast.statements:
         verify_statement(ctx=ctx, stmt=stmt)
 
@@ -181,10 +195,6 @@ def verify_expression(ctx: Context, expression: Expression, type: Type=None):
         return verify_function_call(ctx=ctx, node=expression, type=type)
     elif isinstance(expression, AccessArray):
         return verify_access_array(ctx=ctx, node=expression, type=type)
-    
-def verify_program_node(ctx: Context, node: ProgramNode):
-    for stmt in node.children:
-        verify_statement(ctx = ctx, stmt = stmt)
 
 def verify_immutable_variable(ctx: Context, node: ImmutableVariable):
     if ctx.has_name_in_current_scope(name=node.name):
@@ -204,21 +214,11 @@ def verify_assign(ctx: Context, node: Assign):
     node.type = _type
 
 def verify_function(ctx: Context, node: Function):
-    seen = set()
-    if(any(i.name in seen or seen.add(i.name) for i in node.parameters)):
-        raise TypeError(f"Function {node.name} has repeated parameters")
-    ctx_func = ctx.check_if_function_signature_exists(name=node.name, parameters=node.parameters, return_type=node.return_type)
-    if node.block is not None:
-        ctx.set_function_signature_in_scope(name=node.name, parameters=node.parameters, return_type=node.return_type)
-        ctx.enter_scope()
-        ctx.set_parameters_in_scope(parameters=node.parameters)
-        ctx.set_return_in_scope(function_name=node.name, type=node.return_type)
-        verify_statement(ctx=ctx, stmt=node.block)
-        ctx.exit_scope()
-    else:
-        if isinstance(ctx_func, FunctionDeclarationSignature):
-            raise TypeError(f"Function {node.name} already been declared")
-        ctx.set_function_declaration_signature_in_scope(name=node.name, parameters=node.parameters, return_type=node.return_type)
+    ctx.enter_scope()
+    ctx.set_parameters_in_scope(parameters=node.parameters)
+    ctx.set_return_in_scope(function_name=node.name, type=node.return_type)
+    verify_statement(ctx=ctx, stmt=node.block)
+    ctx.exit_scope()
 
 def verify_block(ctx: Context, node: Block):
     ctx.enter_scope()
@@ -326,16 +326,19 @@ def verify_array_literal(ctx: Context, node: ArrayLiteral, type: Type):
     if node.elements is not None:
         for element in node.elements:
             verify_expression(ctx=ctx, expression=element, type=type.subtype)
-    node.type = ArrayType()
+    node.type = type
+    size = len(node.elements)
+    node.size = size
+    type.size = size
     return type
 
-def verify_int_literal(node: Expression, type: Type = None):
+def verify_int_literal(node: IntLiteral, type: Type = None):
     if type is not None and not isinstance(type, IntType):
         raise TypeError(f"It was needed a {type} but it was given IntType")
     node.type = IntType()
     return IntType()
 
-def verify_boolean_literal(node: Expression, type: Type = None):
+def verify_boolean_literal(node: BooleanLiteral, type: Type = None):
     if type is not None and not isinstance(type, BooleanType):
         raise TypeError(f"It was needed a {type} but it was given BooleanType")
     node.type = BooleanType()
@@ -347,19 +350,19 @@ def verify_double_literal(node: Expression, type: Type = None):
     node.type = DoubleType()
     return DoubleType()
 
-def verify_string_literal(node: Expression, type: Type = None):
+def verify_string_literal(node: StringLiteral, type: Type = None):
     if type is not None and not isinstance(type, StringType):
         raise TypeError(f"It was needed a {type} but it was given StringType")
     node.type = StringType()
     return StringType()
 
-def verify_char_literal(node: Expression, type: Type = None):
+def verify_char_literal(node: CharLiteral, type: Type = None):
     if type is not None and not isinstance(type, CharType):
         raise TypeError(f"It was needed a {type} but it was given CharType")
     node.type = CharType()
     return CharType()
 
-def verify_float_literal(node: Expression, type: Type = None):
+def verify_float_literal(node: FloatLiteral, type: Type = None):
     if type is not None and not isinstance(type, FloatType):
         raise TypeError(f"It was needed a {type} but it was given FloatType")
     node.type = FloatType()

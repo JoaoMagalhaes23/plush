@@ -6,6 +6,16 @@ class Variable:
     name: str
 
 @dataclass
+class String:
+    plush_identifier: str
+    llvm_id: str
+
+@dataclass
+class Array:
+    plush_identifier: str
+    llvm_id: str
+
+@dataclass
 class Func:
     name: str
     value: any
@@ -16,10 +26,9 @@ class Emitter(object):
         self.count = 0
         self.lines = []
         self.stack = [{}]
-        self.strings = {}
 
     def enter_scope(self):
-        self.stack.append({})
+        self.stack.insert(0, {})
     
     def exit_scope(self):
         self.stack.pop()
@@ -62,16 +71,13 @@ class Emitter(object):
             if n in scope:
                 return scope[n].value
 
-    def set_string(self, value:str):
-        v = f"@.str{self.get_count()}"
-        self.strings[value] = v
+    def set_global_array(self, n: str):
+        v = f"@{n}"
+        self.arrays[n] =  v 
         return v
-    
-    def get_string(self, value:str):
-        if value in self.strings:
-            return self.strings[value]
-        else:
-            return None
+
+    def check_if_is_global_scope(self):
+        return len(self.stack) == 1
         
 
 def compiler(ast: ProgramNode, emitter: Emitter=None):
@@ -79,11 +85,14 @@ def compiler(ast: ProgramNode, emitter: Emitter=None):
     emitter.set_function(n="print_int", value=None)
     emitter.set_function(n="print_string", value=None)
     emitter.set_function(n="print_boolean", value=None)
+    emitter.set_function(n="print_int_array", value=None)
     for stmt in ast.statements:
         compiler_stmt(node=stmt, emitter=emitter)
     emitter << "declare void @print_int(i32)"
     emitter << "declare void @print_string(i8*)"
     emitter << "declare void @print_boolean(i1)"
+    emitter << "declare void @print_int_array(i32*, i32)"
+    emitter << "declare void @print_2d_int_array(i32**, i32, i32)"
     return emitter.get_code()
 
 def compiler_stmt(node: Statement, emitter: Emitter):
@@ -106,12 +115,11 @@ def compiler_stmt(node: Statement, emitter: Emitter):
         
 def compile_variable(node: MutableVariable|ImmutableVariable, emitter: Emitter):
     vname = node.name
-    expr = node.expression
-    expr = compiler_expr(node=expr, emitter=emitter)
-    _type = compiler_type(node=node.type, emitter=emitter).get("type")
+    expr = compiler_expr(node=node.expression, emitter=emitter)
     v = emitter.set_variable(n=vname)
+    _type = compiler_type(node=node.type, emitter=emitter).get("type")
     if v[0] == "@":
-        emitter << f"{v} = global {_type} {expr}"
+        emitter << f"{v} = unnamed_addr global {_type} {expr}"
     else:
         emitter << f"{SPACER}{v} = alloca {_type}"
         emitter << f"{SPACER}store {_type} {expr}, {_type}* {v}"
@@ -160,18 +168,20 @@ def compile_assign(node: Assign, emitter: Emitter):
         emitter.set_function(n=node.name, value=expr)
 
 def compile_function_call(node: FunctionCall, emitter: Emitter):
-    function_name = emitter.get_obj(n=node.name).name
     llvm_type = compiler_type(node=node.type, emitter=emitter).get("type")
     args = []
     for arg in node.arguments:
         expre = compiler_expr(node=arg, emitter=emitter)
-        _type = compiler_type(node=arg.type, emitter=emitter).get("type")
-        args.append({"expre":expre, "type":_type})
-    args_string = ",".join(f"{element.get('type')} {element.get('expre')}" for element in args)
+        t = compiler_type(node=arg.type, emitter=emitter)
+        _type = t.get("type") if arg.type is not ArrayType else t.get("type_pointer")
+        args.append(f"{_type} {expre}")
+    args_string = ", ".join(args)
     if llvm_type == "void":
-        emitter << f"{SPACER}call {llvm_type} {function_name}({args_string})"
+        emitter << f"{SPACER}call {llvm_type} @{node.name}({args_string})"
     else:
-        emitter << f"{SPACER}{emitter.get_id()} = call {llvm_type} {function_name}({args_string})"
+        _id = emitter.get_id()
+        emitter << f"{SPACER}{_id} = call {llvm_type} @{node.name}({args_string})"
+        return _id
 
 def compile_if(node: If, emitter: Emitter):
     cond = compiler_expr(node=node.condition, emitter=emitter)
@@ -214,6 +224,9 @@ def compiler_type(node: Type, emitter: Emitter):
         return {"type":"i8*", "default_value": ""} 
     if isinstance(node, VoidType):
         return {"type": "void"}
+    if isinstance(node, ArrayType):
+        _type = compiler_type(node=node.subtype, emitter=emitter).get("type")
+        return {"type": f"{_type}*"}
         
 def compiler_expr(node: Expression, emitter: Emitter):
     if isinstance(node, IntLiteral):
@@ -228,6 +241,10 @@ def compiler_expr(node: Expression, emitter: Emitter):
         return node.value
     elif isinstance(node, Identifier):
         return compile_identifier(node=node, emitter=emitter)
+    elif isinstance(node, FunctionCall):
+        return compile_function_call(node=node, emitter=emitter)
+    elif isinstance(node, ArrayLiteral):
+        return compile_array_literal(node=node, emitter=emitter)
     elif isinstance(node, BinaryOp):
         return compile_binary_op(node=node, emitter=emitter)
     elif isinstance(node, Group):
@@ -238,14 +255,40 @@ def compiler_expr(node: Expression, emitter: Emitter):
         return compile_not_op(node=node, emitter=emitter)
     
 def compile_string_literal(node: StringLiteral, emitter: Emitter):
-    s = emitter.get_string(value=node.value)
-    string_name = s if s is not None else emitter.set_string(value=node.value)
+    string_name = f"@.str.{emitter.get_count()}"
     _type = f"[{len(node.value)+1} x i8]"
-    if s is None:
-        s = f"{string_name} = private unnamed_addr constant {_type} c\"{node.value}\\00\""
-        emitter.lines.insert(0, s)
+    s = f"{string_name} = private unnamed_addr global {_type} c\"{node.value}\\00\""
+    emitter.lines.insert(0, s)
     return f"getelementptr inbounds ({_type}, {_type}* {string_name}, i64 0, i64 0)"
 
+def compile_array_literal(node: ArrayLiteral, emitter: Emitter):
+    if emitter.check_if_is_global_scope():    
+        elements = []
+        for i in range(len(node.elements)):
+            elem = compiler_expr(node=node.elements[i], emitter=emitter)
+            elem_type = compiler_type(node=node.elements[i].type, emitter=emitter).get("type")
+            elements.append(f"{elem_type} {elem}")
+        elems_string = ", ".join(elements)
+        array_id = f"@.array{emitter.get_count()}"
+        array_type = f"[{len(node.elements)} x {elem_type}]"
+        emitter.lines.append(f"{array_id} = global {array_type} [{elems_string}]")
+        return f"getelementptr inbounds ({array_type}, {array_type}* {array_id}, i64 0, i64 0)"
+    else: 
+        array_id = f"array{emitter.get_count()}"
+        subtype_type = compiler_type(node=node.type.subtype, emitter=emitter).get("type")
+        emitter << f"{SPACER}%{array_id} = alloca {subtype_type}, i32 {len(node.elements)}"
+        index = 0
+        for node in node.elements:
+            elem = compiler_expr(node=node, emitter=emitter)
+            index_id = f"%{array_id}.index{index}"
+            emitter << f"{SPACER}{index_id} = getelementptr inbounds {subtype_type}, {subtype_type}* %{array_id}, i32 {index}"
+            emitter << f"{SPACER}store {subtype_type} {elem}, {subtype_type}* {index_id}"
+            index+=1
+        array_ptr = f"array{emitter.get_count()}ptr"
+        emitter << f"{SPACER}%{array_ptr} = getelementptr inbounds {subtype_type}, {subtype_type}* %{array_id}, i32 0"
+        return f"%{array_ptr}"
+    
+    
 def compile_identifier(node: Identifier, emitter: Emitter):
     obj = emitter.get_obj(n=node.id)
     _type = compiler_type(node=node.type, emitter=emitter).get("type")
