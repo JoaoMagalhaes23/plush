@@ -1,10 +1,10 @@
 val actual_min : int := -9;
 val actual_max : int := 9;
 
-function maxRangeSquared(var mi:int) : int {
+function maxRangeSquared(var mi:int, val ma:int) : int {
 	var current_max : int := mi ^ 2;
 	while mi <= ma {
-		int current_candidate : int := mi ^ 2;
+		var current_candidate : int := mi ^ 2;
 		if current_candidate > current_max {
 			current_max := current_candidate;
 		}
@@ -13,7 +13,7 @@ function maxRangeSquared(var mi:int) : int {
 }
 
 
-function main(val args:[string]) {
+function main(val args:[string]): void {
 	val result : int := maxRangeSquared(actual_min, actual_max);
 	print_int(result);
 }

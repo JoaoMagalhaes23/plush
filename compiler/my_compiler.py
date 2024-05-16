@@ -1,4 +1,4 @@
-from node import ProgramNode, Statement, Type, Expression, MutableVariable, ImmutableVariable, Assign, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, DoubleType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, DoubleLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall
+from node import ProgramNode, Statement, Type, Expression, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall
 from dataclasses import dataclass
 
 @dataclass
@@ -6,32 +6,24 @@ class Variable:
     name: str
 
 @dataclass
-class String:
-    plush_identifier: str
-    llvm_id: str
-
-@dataclass
-class Array:
-    plush_identifier: str
-    llvm_id: str
-
-@dataclass
 class Func:
-    name: str
-    value: any
+    name: any
 
 SPACER = "   "   
 class Emitter(object):
     def __init__(self):
         self.count = 0
+        self.strings_counter = 0
+        self.arrays_counter = 0
         self.lines = []
         self.stack = [{}]
 
     def enter_scope(self):
-        self.stack.insert(0, {})
+        self.stack.insert(0, {"_": self.count})
+        self.count = 0
     
     def exit_scope(self):
-        self.stack.pop()
+        self.count = self.stack.pop(0)["_"]
         
     def get_count(self):
         self.count += 1
@@ -40,6 +32,14 @@ class Emitter(object):
     def get_id(self):
         new_id = self.get_count()
         return f"%x{new_id}"
+
+    def get_string_counter(self):
+        self.strings_counter += 1
+        return self.strings_counter
+    
+    def get_array_counter(self):
+        self.arrays_counter += 1
+        return self.arrays_counter
 
     def __lshift__(self, v):
         self.lines.append(v)
@@ -61,20 +61,16 @@ class Emitter(object):
             scope[n] =  Variable(name=f"%{n}")
             return f"%{n}"
     
-    def set_function(self, n: str, value:any):
+    def set_parameter(self, n: str):
         scope = self.stack[0]
-        scope[n] = Func(name=f"@{n}", value=value)
-        return f"@{n}"
+        _id = f"%{n}.addr"
+        scope[n] = Variable(name=_id)
+        return _id
     
-    def get_function_value(self, n: str):
-        for scope in self.stack:
-            if n in scope:
-                return scope[n].value
-
-    def set_global_array(self, n: str):
-        v = f"@{n}"
-        self.arrays[n] =  v 
-        return v
+    def set_function(self, n: str):
+        scope = self.stack[0]
+        scope[n] = Func(name="%retval")
+        return "%retval"
 
     def check_if_is_global_scope(self):
         return len(self.stack) == 1
@@ -82,17 +78,16 @@ class Emitter(object):
 
 def compiler(ast: ProgramNode, emitter: Emitter=None):
     emitter = Emitter()
-    emitter.set_function(n="print_int", value=None)
-    emitter.set_function(n="print_string", value=None)
-    emitter.set_function(n="print_boolean", value=None)
-    emitter.set_function(n="print_int_array", value=None)
     for stmt in ast.statements:
         compiler_stmt(node=stmt, emitter=emitter)
     emitter << "declare void @print_int(i32)"
     emitter << "declare void @print_string(i8*)"
     emitter << "declare void @print_boolean(i1)"
+    emitter << "declare void @print_float(float)"
     emitter << "declare void @print_int_array(i32*, i32)"
     emitter << "declare void @print_2d_int_array(i32**, i32, i32)"
+    emitter << "declare i8* @concatenate_strings(i8*, i8*)"
+    emitter << "declare i8* @int_to_string(i32)"
     return emitter.get_code()
 
 def compiler_stmt(node: Statement, emitter: Emitter):
@@ -112,12 +107,13 @@ def compiler_stmt(node: Statement, emitter: Emitter):
         return compile_if(node=node, emitter=emitter)
     elif isinstance(node, While):
         compile_while(node=node, emitter=emitter)
-        
+    elif isinstance(node, AssignArray):
+        return compile_assign_array(node=node, emitter=emitter)
+
 def compile_variable(node: MutableVariable|ImmutableVariable, emitter: Emitter):
-    vname = node.name
     expr = compiler_expr(node=node.expression, emitter=emitter)
-    v = emitter.set_variable(n=vname)
-    _type = compiler_type(node=node.type, emitter=emitter).get("type")
+    v = emitter.set_variable(n=node.name)
+    _type = compiler_type(node=node.type, emitter=emitter)
     if v[0] == "@":
         emitter << f"{v} = unnamed_addr global {_type} {expr}"
     else:
@@ -125,55 +121,58 @@ def compile_variable(node: MutableVariable|ImmutableVariable, emitter: Emitter):
         emitter << f"{SPACER}store {_type} {expr}, {_type}* {v}"
 
 def compile_function(node: Function, emitter: Emitter):
-    _dict = compiler_type(node=node.return_type, emitter=emitter)
-    _type = _dict.get("type")
-    function_name = emitter.set_function(n=node.name, value=_dict.get("default_value"))
+    _type = compiler_type(node=node.return_type, emitter=emitter)
     emitter.enter_scope()
     parameters=[]
     for par in node.parameters:
         result = compiler_stmt(node=par, emitter=emitter)
         parameters.append(result)
-    parameters_string = ",".join(f"{element.get('type')} {element.get('name')}" for element in parameters)
-    emitter << f"define {_type} {function_name}({parameters_string}) {{"
+    parameters_string = ", ".join(f"{element.get('type')} {element.get('llvm_name')}" for element in parameters)
+    emitter << f"define {_type} @{node.name}({parameters_string}) {{"
     emitter << "entry:"
+    if _type != "void":
+        emitter << f"{SPACER}%retval = alloca {_type}"
+    emitter.set_function(n=node.name)
     for p in parameters:
-        _id = emitter.get_id()
-        emitter << f"{SPACER}{_id} = alloca {p.get('type')}"
-        emitter << f"{SPACER}store {p.get('type')} {p.get('name')}, {p.get('type')}* {_id}"
+        llvm_name = emitter.set_parameter(n=p.get('name'))
+        emitter << f"{SPACER}{llvm_name} = alloca {p.get('type')}"
+        emitter << f"{SPACER}store {p.get('type')} {p.get('llvm_name')}, {p.get('type')}* {llvm_name}"
     compiler_stmt(node=node.block, emitter=emitter)
-    emitter << f"{SPACER}ret {_type} {emitter.get_function_value(n=node.name)}"
+    return_id = emitter.get_id()
+    if _type != "void":
+        emitter << f"{SPACER}{return_id} = load {_type}, {_type}* %retval"
+        emitter << f"{SPACER}ret {_type} {return_id}"
+    else:
+        emitter << f"{SPACER}ret void"
     emitter << "}"
     emitter.exit_scope()
     
 def compile_parameter(node: MutableParameter|ImmutableParameter, emitter: Emitter):
-    pname = emitter.set_variable(n=node.name)
-    _dict = compiler_type(node=node.type, emitter=emitter)
-    _type = _dict.get("type")
-    return {"type": _type, "name": pname}
+    _type = compiler_type(node=node.type, emitter=emitter)
+    return {"type": _type, "llvm_name": f"%{node.name}", "name": node.name}
 
 def compile_block(node: Block, emitter: Emitter):
-    emitter.enter_scope()
     for stmt in node.statements:
         compiler_stmt(node=stmt, emitter=emitter)
-    emitter.exit_scope()
 
 def compile_assign(node: Assign, emitter: Emitter):
+    variable = emitter.get_obj(n=node.variable).name
     expr = compiler_expr(node=node.expression, emitter=emitter)
-    _dict = compiler_type(node=node.type, emitter=emitter)
-    _type = _dict.get("type")
-    obj = emitter.get_obj(n=node.name)
-    if isinstance(obj, Variable):
-        emitter << f"{SPACER}store {_type} {expr}, {_type}* {obj.name}"
-    else:
-        emitter.set_function(n=node.name, value=expr)
+    _type = compiler_type(node=node.type, emitter=emitter)
+    emitter << f"{SPACER}store {_type} {expr}, {_type}* {variable}"
+
+def compile_assign_array(node: AssignArray, emitter: Emitter):
+    expr = compiler_expr(node=node.expression, emitter=emitter)
+    _type = compiler_type(node=node.type, emitter=emitter)
+    array = compiler_expr(node=node._array, emitter=emitter)
+    emitter << f"{SPACER}store {_type} {expr}, {_type}* {array}"
 
 def compile_function_call(node: FunctionCall, emitter: Emitter):
-    llvm_type = compiler_type(node=node.type, emitter=emitter).get("type")
+    llvm_type = compiler_type(node=node.type, emitter=emitter)
     args = []
     for arg in node.arguments:
         expre = compiler_expr(node=arg, emitter=emitter)
-        t = compiler_type(node=arg.type, emitter=emitter)
-        _type = t.get("type") if arg.type is not ArrayType else t.get("type_pointer")
+        _type = compiler_type(node=arg.type, emitter=emitter)
         args.append(f"{_type} {expre}")
     args_string = ", ".join(args)
     if llvm_type == "void":
@@ -213,26 +212,30 @@ def compile_while(node: While, emitter: Emitter):
     
 def compiler_type(node: Type, emitter: Emitter):  
     if isinstance(node, IntType):
-        return {"type":"i32", "default_value": 0}
+        return "i32"
     if isinstance(node, FloatType):
-        return {"type":"float", "default_value": 0}
+        return "float"
     if isinstance(node, CharType):
-        return {"type":"i8", "default_value": 0}
+        return "i8"
     if isinstance(node, BooleanType):
-        return {"type":"i1", "default_value": "false"}
+        return "i1"
     if isinstance(node, StringType):
-        return {"type":"i8*", "default_value": ""} 
+        return "i8*" 
     if isinstance(node, VoidType):
-        return {"type": "void"}
+        return "void"
     if isinstance(node, ArrayType):
-        _type = compiler_type(node=node.subtype, emitter=emitter).get("type")
-        return {"type": f"{_type}*"}
-        
+        _type = compiler_type(node=node.subtype, emitter=emitter)
+        return f"{_type}*"
+
+import struct
+def float_to_hex(f: float):
+    return hex(struct.unpack('<Q', struct.pack('<d', f))[0])
+
 def compiler_expr(node: Expression, emitter: Emitter):
     if isinstance(node, IntLiteral):
         return node.value
     elif isinstance(node, FloatLiteral):
-        return node.value
+        return float_to_hex(float(node.value))
     elif isinstance(node, BooleanLiteral):
         return node.value
     elif isinstance(node, StringLiteral):
@@ -253,45 +256,31 @@ def compiler_expr(node: Expression, emitter: Emitter):
         return compile_unary_op(node=node, emitter=emitter)
     elif isinstance(node, NotOp):
         return compile_not_op(node=node, emitter=emitter)
+    elif isinstance(node, AccessArray):
+        return compile_access_array(node=node, emitter=emitter) 
     
 def compile_string_literal(node: StringLiteral, emitter: Emitter):
-    string_name = f"@.str.{emitter.get_count()}"
+    string_name = f"@.str.{emitter.get_string_counter()}"
     _type = f"[{len(node.value)+1} x i8]"
     s = f"{string_name} = private unnamed_addr global {_type} c\"{node.value}\\00\""
     emitter.lines.insert(0, s)
     return f"getelementptr inbounds ({_type}, {_type}* {string_name}, i64 0, i64 0)"
 
 def compile_array_literal(node: ArrayLiteral, emitter: Emitter):
-    if emitter.check_if_is_global_scope():    
-        elements = []
-        for i in range(len(node.elements)):
-            elem = compiler_expr(node=node.elements[i], emitter=emitter)
-            elem_type = compiler_type(node=node.elements[i].type, emitter=emitter).get("type")
-            elements.append(f"{elem_type} {elem}")
-        elems_string = ", ".join(elements)
-        array_id = f"@.array{emitter.get_count()}"
-        array_type = f"[{len(node.elements)} x {elem_type}]"
-        emitter.lines.append(f"{array_id} = global {array_type} [{elems_string}]")
-        return f"getelementptr inbounds ({array_type}, {array_type}* {array_id}, i64 0, i64 0)"
-    else: 
-        array_id = f"array{emitter.get_count()}"
-        subtype_type = compiler_type(node=node.type.subtype, emitter=emitter).get("type")
-        emitter << f"{SPACER}%{array_id} = alloca {subtype_type}, i32 {len(node.elements)}"
-        index = 0
-        for node in node.elements:
-            elem = compiler_expr(node=node, emitter=emitter)
-            index_id = f"%{array_id}.index{index}"
-            emitter << f"{SPACER}{index_id} = getelementptr inbounds {subtype_type}, {subtype_type}* %{array_id}, i32 {index}"
-            emitter << f"{SPACER}store {subtype_type} {elem}, {subtype_type}* {index_id}"
-            index+=1
-        array_ptr = f"array{emitter.get_count()}ptr"
-        emitter << f"{SPACER}%{array_ptr} = getelementptr inbounds {subtype_type}, {subtype_type}* %{array_id}, i32 0"
-        return f"%{array_ptr}"
-    
-    
+    elements = []
+    for i in range(len(node.elements)):
+        elem = compiler_expr(node=node.elements[i], emitter=emitter)
+        elem_type = compiler_type(node=node.elements[i].type, emitter=emitter)
+        elements.append(f"{elem_type} {elem}")
+    elems_string = ", ".join(elements)
+    array_id = f"@.array{emitter.get_array_counter()}"
+    array_type = f"[{len(node.elements)} x {elem_type}]"
+    emitter.lines.insert(0, f"{array_id} = global {array_type} [{elems_string}]")
+    return f"getelementptr inbounds ({array_type}, {array_type}* {array_id}, i64 0, i64 0)"
+        
 def compile_identifier(node: Identifier, emitter: Emitter):
     obj = emitter.get_obj(n=node.id)
-    _type = compiler_type(node=node.type, emitter=emitter).get("type")
+    _type = compiler_type(node=node.type, emitter=emitter)
     _id = emitter.get_id()
     emitter << f"{SPACER}{_id} = load {_type}, {_type}* {obj.name}"
     return _id
@@ -299,7 +288,7 @@ def compile_identifier(node: Identifier, emitter: Emitter):
 def compile_binary_op(node: BinaryOp, emitter: Emitter):
     left = compiler_expr(node=node.left_expression, emitter=emitter)
     right = compiler_expr(node=node.right_expression, emitter=emitter)
-    _type = compiler_type(node=node.type, emitter=emitter).get("type")
+    _type = compiler_type(node=node.left_expression.type, emitter=emitter)
     _id = emitter.get_id()
     emitter << f"{SPACER}{_id} = {get_llvm_function(node.op)} {_type} {left}, {right}"
     return _id
@@ -308,16 +297,40 @@ def compile_group(node: Group, emitter: Emitter):
     return compiler_expr(node=node.expression, emitter=emitter)
 
 def compile_unary_op(node: UnaryOp, emitter: Emitter):
-    expr = compiler_expr(node=node.expression, emitter=emitter)
-    _id = emitter.get_id()
-    emitter << f"{SPACER}{_id} = sub i32 0, {expr}"
-    return _id
+    if isinstance(node.expression, FloatLiteral) or isinstance(node.expression, IntLiteral):
+        node.expression.value = -node.expression.value
+        return compiler_expr(node=node.expression, emitter=emitter)
+    else:    
+        expr = compiler_expr(node=node.expression, emitter=emitter)
+        _id = emitter.get_id()
+        emitter << f"{SPACER}{_id} = sub i32 0, {expr}"
+        return _id
 
 def compile_not_op(node: NotOp, emitter: Emitter):
     expr = compiler_expr(node=node.expression, emitter=emitter)
     _id = emitter.get_id()
     emitter << f"{SPACER}{_id} = xor i1 {expr}, true"
     return _id
+
+def compile_access_array(node: AccessArray, emitter: Emitter):
+    llvm_name = emitter.get_obj(n=node.array).name
+    _type = node.array_type
+    for index in node.indexes:
+        index = compiler_expr(node=index, emitter=emitter)
+        _sub_type = compiler_type(node=_type, emitter=emitter)
+        _id = emitter.get_id()
+        emitter << f"{SPACER}{_id} = load {_sub_type}, {_sub_type}* {llvm_name}"
+        llvm_name = _id
+        _type = _type.subtype
+    index_ptr = f"%index.ptr{emitter.get_count()}"
+    t = compiler_type(node=_type, emitter=emitter)
+    emitter << f"{SPACER}{index_ptr} = getelementptr inbounds {t}, {t}* {llvm_name}, i32 {index}"
+    if node.assigned:
+        return index_ptr
+    else:
+        arrayidx = f"%arrayidx{emitter.get_count()}"
+        emitter << f"{SPACER}{arrayidx} = load {t}, {t}* {index_ptr}"
+        return arrayidx
 
 def get_llvm_function(operation: str):
     if operation == "+":
@@ -350,4 +363,20 @@ def get_llvm_function(operation: str):
         return "xor"
     elif operation == "!":
         return "not"
-    
+
+def get_default_value(type: Type):
+    if isinstance(type, IntType):
+        return 0
+    elif isinstance(type, FloatType):
+        return 0.0
+    elif isinstance(type, CharType):
+        return 0
+    elif isinstance(type, BooleanType):
+        return 0
+    elif isinstance(type, StringType):
+        return "null"
+    elif isinstance(type, ArrayType):
+        return "null"
+    elif isinstance(type, VoidType):
+        return None
+    return None 

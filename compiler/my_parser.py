@@ -1,4 +1,4 @@
-from node import ProgramNode, MutableVariable, ImmutableVariable, Assign, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, DoubleType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, DoubleLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall 
+from node import ProgramNode, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall 
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
@@ -9,7 +9,8 @@ precedence = (
     ('left', 'OR'),
     ('right', 'NOT'),
     ('right','UMINUS'),
-
+    ('left', 'L_PAREN', 'R_PAREN'),
+    ('left', 'L_S_BRACKET', 'R_S_BRACKET')
 )
 
 def p_start(p):
@@ -48,9 +49,14 @@ def p_create_variable(p):
             
 def p_assign(p):
     '''
-    assign : ID COLON_EQUALS expression
+    assign  :   ID COLON_EQUALS expression
+            |   index COLON_EQUALS expression
     '''
-    p[0] = Assign(name=p[1], expression=p[3])
+    if isinstance(p[1], str):
+        p[0] = Assign(variable=p[1], expression=p[3])
+    else :
+        p[0] = AssignArray(_array=p[1], expression=p[3])
+    
     
 def p_function(p):
     '''
@@ -174,7 +180,6 @@ def p_expression_not(p):
 def p_type(p):
     '''
     type    : type_int
-            | type_double
             | type_string
             | type_boolean
             | type_char
@@ -189,12 +194,6 @@ def p_type_int(p):
     type_int : INT
     '''
     p[0] = IntType()
-
-def p_type_double(p):
-    '''
-    type_double : DOUBLE
-    '''
-    p[0] = DoubleType()
 
 def p_type_string(p):
     '''
@@ -235,7 +234,6 @@ def p_type_array(p):
 def p_value(p):
     '''
     value   : literal_int
-            | literal_double
             | literal_string
             | literal_boolean
             | literal_char
@@ -252,12 +250,6 @@ def p_literal_int(p):
     literal_int : INT_LITERAL
     '''
     p[0] = IntLiteral(value = p[1])
-
-def p_literal_double(p):
-    '''
-    literal_double : DOUBLE_LITERAL
-    '''
-    p[0] = DoubleLiteral(value = p[1])
 
 def p_literal_string(p):
     '''

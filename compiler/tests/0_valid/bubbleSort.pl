@@ -1,27 +1,23 @@
-function bubbleSort(val arr: [int], val size: int): [int] {
-    var swapped : int := 1;
-    while swapped = 1 {
-        swapped := 0;
+function bubbleSort(var arr: [int], val size: int): [int] {
+    var swapped : boolean := true;
+    while swapped {
+        swapped := false;
         var i: int := 0;
-        while i < size-1 {
+        while i < (size-1) {
             if arr[i] > arr[i+1] {
                 val temp : int := arr[i];
                 arr[i] := arr[i+1];
                 arr[i+1] := temp;
-                swapped := 1;
+                swapped := true;
             }
             i := i + 1;
         }
     }
 }
 
-function main(val args:[string]): int {
-    val arr : [int] := [64, 34, 25, 12, 22, 11, 90];
+function main(): int {
+    val arr : [int] := {25, 12, 22, 11, 34, 64, 90};
     val size : int := 7;
-    val res : [int] := bubbleSort(arr, size);
-    var i : int := 0;
-    while i < size {
-        print_int(res[i]);
-        i := i + 1;
-    }
+    bubbleSort(arr, size);
+    print_int_array(arr, size);
 }

@@ -1,6 +1,5 @@
-
-val e: [[int]] := {{1, 2}, {3, 4, 5}};
-function main(val args: int): int {
-	print_2d_int_array(e, 2, 5);
-	main := 1;
+function main(): int {
+	val actual_min : float := 3.4;
+	print_float(actual_min);
 }
+

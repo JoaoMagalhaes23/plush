@@ -44,12 +44,31 @@ class MutableVariable(Statement):
 
 @dataclass
 class Assign(Statement):
-    name: str
+    variable: str = None
     expression: Expression = None
     type: Type = None
 
     def __str__(self):
-        return f"{self.__class__.__name__} -> {self.name}"
+        return f"{self.__class__.__name__}"
+
+@dataclass
+class AccessArray(Expression):
+    array: str
+    indexes: list[Expression] = None
+    type: Type = None
+    array_type: Type = None
+    assigned: bool = False
+    def __str__(self):
+        return f"{self.__class__.__name__} -> {self.array}"
+
+@dataclass 
+class AssignArray(Statement):
+    _array: AccessArray = None
+    expression: Expression = None
+    type: Type = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__}"
 
 @dataclass
 class Function(Statement):
@@ -135,11 +154,6 @@ class NotOp(Expression):
 class IntType(Type):
     def __str__(self):
         return self.__class__.__name__
-
-@dataclass
-class DoubleType(Type):
-    def __str__(self):
-        return self.__class__.__name__
     
 @dataclass
 class StringType(Type):
@@ -188,13 +202,6 @@ class IntLiteral(Expression):
         return f"{self.__class__.__name__} -> {self.value}"
 
 @dataclass
-class DoubleLiteral(Expression):
-    value: float
-    type: Type = None
-    def __str__(self):
-        return f"{self.__class__.__name__} -> {self.value}"
-
-@dataclass
 class BooleanLiteral(Expression):
     value: bool
     type: Type = None
@@ -230,15 +237,6 @@ class Identifier(Expression):
     
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.id}"
-    
-@dataclass
-class AccessArray(Expression):
-    array: str
-    indexes: list[Expression] = None
-    type: Type = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__} -> {self.array}"
 
 @dataclass
 class FunctionCall(Expression):
@@ -257,6 +255,12 @@ def print_ast(node, indent=0):
                 print_ast(child, indent + 1)
     elif isinstance(node, Statement):
         print('\t' * indent + str(node))
+        if hasattr(node, '_array') and node._array:
+            print_ast(node._array, indent + 1)
+        if hasattr(node, 'identifier') and node.identifier:
+            print_ast(node.identifier, indent + 1)
+        if hasattr(node, 'variable') and node.variable:
+            print_ast(node.variable, indent + 1)
         if hasattr(node, 'expression') and node.expression:
             print_ast(node.expression, indent + 1)
         if hasattr(node, 'type') and node.type:
@@ -282,7 +286,7 @@ def print_ast(node, indent=0):
         if hasattr(node, 'subtype') and node.subtype:
             print_ast(node.subtype, indent + 1)
         if hasattr(node, 'size') and node.size:
-            print_ast(node.size, indent + 1)
+            print('\t' * indent + "size " +  str(node.size))
     elif isinstance(node, Expression):
         print('\t' * indent + str(node))
         if hasattr(node, 'elements'):
@@ -304,6 +308,6 @@ def print_ast(node, indent=0):
             for argument in node.arguments:
                 print_ast(argument, indent + 1)
         if hasattr(node, 'size') and node.size:
-            print_ast(node.size, indent + 1)
+            print('\t' * indent + "size " + str(node.size))
     else:
         print(f"node {str(node)} not found")

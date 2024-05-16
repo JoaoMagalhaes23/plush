@@ -1,18 +1,22 @@
 function binarySearch(val arr: [int], val target: int, val size: int): int {
     var low : int := 0;
     var high : int := size - 1;
-    while low <= high {
+    var can_return: boolean := false;
+    binarySearch := -1;
+    while !can_return && (low <= high) {
         val mid : int := (low + high) / 2;
-        if arr[mid] = target {
+        val mid_idx: int := arr[mid];
+        if mid_idx = target {
             binarySearch := mid;
-        } else if arr[mid] < target {
+            can_return := true;
+        } else if mid_idx < target {
             low := mid + 1;
         } else {
             high := mid - 1;
         }
     }
-    binarySearch := -1;
 }
+
 function main (val args:[string]): int {
     val arr : [int] := {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
     val target : int := 13;

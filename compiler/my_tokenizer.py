@@ -11,7 +11,6 @@ reserved = {
     'char'      : 'CHAR',
     'int'       : 'INT',
     'float'     : 'FLOAT',
-    'double'    : 'DOUBLE',
     'string'    : 'STRING',
     'void'      : 'VOID',
 }
@@ -31,7 +30,6 @@ tokens = [
     'CHAR_LITERAL',
     'INT_LITERAL',
     'FLOAT_LITERAL',
-    'DOUBLE_LITERAL',
     'STRING_LITERAL',
     # OPERATORS
     'PLUS',
@@ -94,15 +92,13 @@ def t_CHAR_LITERAL(t):
     return t
 
 def t_FLOAT_LITERAL(t):
-    r'\d+\.\d+f'
-    return t
-
-def t_DOUBLE_LITERAL(t):
     r'\d+\.\d+'
+    t.value = float(t.value)
     return t
 
 def t_INT_LITERAL(t):
     r'[0-9]([0-9]|_[0-9])*'
+    t.value = int(t.value.replace("_", ""))
     return t
 
 def t_STRING_LITERAL(t):

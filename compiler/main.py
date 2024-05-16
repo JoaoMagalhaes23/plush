@@ -49,8 +49,8 @@ def run_compiler(path, see_tokens, see_parser_ast, see_semantic_ast, see_llvm_co
     else:
         print("Not seeing parser AST")
 
-    verify(Context(), ast)
 
+    verify(Context(), ast)
     if see_semantic_ast == "1":
         print_ast(ast)
         print(SEPARATOR)
