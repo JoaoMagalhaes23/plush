@@ -1,5 +1,5 @@
 # https://www.dabeaz.com/ply/ply.html#ply_nn34
-
+from ply import lex
 reserved = {
     'if'        : 'IF',
     'else'      : 'ELSE',
@@ -112,7 +112,7 @@ def t_ID(t):
     return t
 
 def t_error(t):
-    raise Exception(f"Illegal character {t.value[0]}") 
+    raise TypeError(f"Illegal character {t.value[0]}") 
     
 def t_newline(t):
     r'\n+'
@@ -122,4 +122,4 @@ def t_COMMENT(t):
     r'\#.*'
     pass
     
-
+lexer = lex.lex()

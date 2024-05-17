@@ -1,5 +1,6 @@
 from node import ProgramNode, Statement, Type, Expression, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall
 from dataclasses import dataclass
+import numpy as np
 
 @dataclass
 class Variable:
@@ -228,14 +229,14 @@ def compiler_type(node: Type, emitter: Emitter):
         return f"{_type}*"
 
 import struct
-def float_to_hex(f: float):
+def float_to_hex(f):
     return hex(struct.unpack('<Q', struct.pack('<d', f))[0])
 
 def compiler_expr(node: Expression, emitter: Emitter):
     if isinstance(node, IntLiteral):
         return node.value
     elif isinstance(node, FloatLiteral):
-        return float_to_hex(float(node.value))
+        return float_to_hex(np.float32(node.value))
     elif isinstance(node, BooleanLiteral):
         return node.value
     elif isinstance(node, StringLiteral):
@@ -290,7 +291,7 @@ def compile_binary_op(node: BinaryOp, emitter: Emitter):
     right = compiler_expr(node=node.right_expression, emitter=emitter)
     _type = compiler_type(node=node.left_expression.type, emitter=emitter)
     _id = emitter.get_id()
-    emitter << f"{SPACER}{_id} = {get_llvm_function(node.op)} {_type} {left}, {right}"
+    emitter << f"{SPACER}{_id} = {get_llvm_function(node.op, node.left_expression.type)} {_type} {left}, {right}"
     return _id
 
 def compile_group(node: Group, emitter: Emitter):
@@ -322,9 +323,10 @@ def compile_access_array(node: AccessArray, emitter: Emitter):
         emitter << f"{SPACER}{_id} = load {_sub_type}, {_sub_type}* {llvm_name}"
         llvm_name = _id
         _type = _type.subtype
-    index_ptr = f"%index.ptr{emitter.get_count()}"
-    t = compiler_type(node=_type, emitter=emitter)
-    emitter << f"{SPACER}{index_ptr} = getelementptr inbounds {t}, {t}* {llvm_name}, i32 {index}"
+        index_ptr = f"%index.ptr{emitter.get_count()}"
+        t = compiler_type(node=_type, emitter=emitter)
+        emitter << f"{SPACER}{index_ptr} = getelementptr inbounds {t}, {t}* {llvm_name}, i32 {index}"
+        llvm_name = index_ptr
     if node.assigned:
         return index_ptr
     else:
@@ -332,29 +334,62 @@ def compile_access_array(node: AccessArray, emitter: Emitter):
         emitter << f"{SPACER}{arrayidx} = load {t}, {t}* {index_ptr}"
         return arrayidx
 
-def get_llvm_function(operation: str):
+def get_llvm_function(operation: str, type: Type):
     if operation == "+":
-        return "add"
+        if isinstance(type, IntType):
+            return "add"
+        elif isinstance(type, FloatType):
+            return "fadd"
     elif operation == "-":
-        return "sub"
+        if isinstance(type, IntType):
+            return "sub"
+        elif isinstance(type, FloatType):
+            return "fsub"
     elif operation == "*":
-        return "mul"
+        if isinstance(type, IntType):
+            return "mul"
+        elif isinstance(type, FloatType):
+            return "fmul"
     elif operation == "/":
-        return "sdiv"
+        if isinstance(type, IntType):
+            return "sdiv"
+        elif isinstance(type, FloatType):
+            return "fdiv"
     elif operation == "%":
-        return "srem"
+        if isinstance(type, IntType):
+            return "srem"
+        else:
+            return "frem"
     elif operation == "<":
-        return "icmp slt"
+        if isinstance(type, IntType):
+            return "icmp slt"
+        else:
+            return "fcmp olt"
     elif operation == ">":
-        return "icmp sgt"
+        if isinstance(type, IntType):
+            return "icmp sgt"
+        else:
+            return "fcmp ogt"
     elif operation == "<=":
-        return "icmp sle"
+        if isinstance(type, IntType):
+            return "icmp sle"
+        else:
+            return "fcmp ole"
     elif operation == ">=":
-        return "icmp sge"
+        if isinstance(type, IntType):
+            return "icmp sge"
+        else:
+            return "fcmp oge"
     elif operation == "=":
-        return "icmp eq"
+        if isinstance(type, IntType):
+            return "icmp eq"
+        else:
+            return "fcmp oeq"
     elif operation == "!=":
-        return "icmp ne"
+        if isinstance(type, IntType):
+            return "icmp ne"
+        else:
+            return "fcmp one"
     elif operation == "&&":
         return "and"
     elif operation == "||":

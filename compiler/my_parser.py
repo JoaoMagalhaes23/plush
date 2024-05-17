@@ -1,5 +1,6 @@
 from node import ProgramNode, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall 
-
+from my_tokenizer import tokens
+from ply import yacc
 precedence = (
     ('left', 'PLUS', 'MINUS'),
     ('left', 'MULTIPLY', 'DIVIDE', 'MOD'),
@@ -108,6 +109,7 @@ def p_statement(p):
                 | assign SEMICOLON
                 | create_variable SEMICOLON
                 | function_call SEMICOLON
+                | function
     '''
     p[0] = p[1]
 
@@ -336,6 +338,8 @@ def p_arguments_list(p):
 
 def p_error(p):
     if p:
-        raise Exception(f"Syntax error at token {p.value} that is at line {p.lineno}")
+        raise TypeError(f"Syntax error at token {p.value} that is at line {p.lineno}")
     else:
-        print("Syntax error at EOF")
+        raise TypeError("Syntax error at EOF")
+        
+parser = yacc.yacc()

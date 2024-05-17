@@ -1,5 +1,6 @@
 function main(): int {
-	val actual_min : float := 3.4;
-	print_float(actual_min);
+
+	val x : int := 4_;
+	print_int(x);
 }
 

@@ -1,4 +1,4 @@
-from node import *
+from node import ProgramNode, Statement, Type, Expression, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall
 
 class Context(object):
     def __init__(self):
@@ -11,7 +11,6 @@ class Context(object):
         for scope in self.stack[::-1]:
             if name in scope:
                 return scope[name]
-        raise Exception("Variavel {} nao encontrada".format(name))
 
     def get_function(self, name):
         scope = self.stack[0]
@@ -53,8 +52,6 @@ def interpret_expression(ctx: Context, expression: Expression, type: Type):
         return int(expression.value)
     elif isinstance(expression, BooleanLiteral):
         return True if expression.value == "true" else False
-    elif isinstance(expression, DoubleLiteral):
-        return float(expression.value)
     elif isinstance(expression, StringLiteral):
         return str(expression.value)
     elif isinstance(expression, CharLiteral):
@@ -64,35 +61,38 @@ def interpret_expression(ctx: Context, expression: Expression, type: Type):
     elif isinstance(expression, ArrayLiteral):
         return [interpret_expression(ctx, expr, type) for expr in expression.expressions]
     elif isinstance(expression, BinaryOp):
-        if expression.operator == "+":
-            return interpret_expression(ctx, expression.left, type) + interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "-":
-            return interpret_expression(ctx, expression.left, type) - interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "*":
-            return interpret_expression(ctx, expression.left, type) * interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "/":
-            return interpret_expression(ctx, expression.left, type) / interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "%":
-            return interpret_expression(ctx, expression.left, type) % interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "^":
-            return interpret_expression(ctx, expression.left, type) ** interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "=":
-            return interpret_expression(ctx, expression.left, type) == interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "!=":
-            return interpret_expression(ctx, expression.left, type) != interpret_expression(ctx, expression.right, type)
-        elif expression.operator == ">":
-            return interpret_expression(ctx, expression.left, type) > interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "<":
-            return interpret_expression(ctx, expression.left, type) < interpret_expression(ctx, expression.right, type)
-        elif expression.operator == ">=":
-            return interpret_expression(ctx, expression.left, type) >= interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "<=":
-            return interpret_expression(ctx, expression.left, type) <= interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "&&":
-            return interpret_expression(ctx, expression.left, type) and interpret_expression(ctx, expression.right, type)
-        elif expression.operator == "||":
-            return interpret_expression(ctx, expression.left, type) or interpret_expression(ctx, expression.right, type)
+        return verify_binary_op(ctx, expression, type)
     elif isinstance(expression, UnaryOp):
         return - interpret_expression(ctx, expression.expression, type)
     elif isinstance(expression, NotOp):
         return not interpret_expression(ctx, expression.expression, type)
+    
+def verify_binary_op(ctx: Context, expression: Expression, type: Type):
+    if expression.operator == "+":
+        return interpret_expression(ctx, expression.left, type) + interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "-":
+        return interpret_expression(ctx, expression.left, type) - interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "*":
+        return interpret_expression(ctx, expression.left, type) * interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "/":
+        return interpret_expression(ctx, expression.left, type) / interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "%":
+        return interpret_expression(ctx, expression.left, type) % interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "^":
+        return interpret_expression(ctx, expression.left, type) ** interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "=":
+        return interpret_expression(ctx, expression.left, type) == interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "!=":
+        return interpret_expression(ctx, expression.left, type) != interpret_expression(ctx, expression.right, type)
+    elif expression.operator == ">":
+        return interpret_expression(ctx, expression.left, type) > interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "<":
+        return interpret_expression(ctx, expression.left, type) < interpret_expression(ctx, expression.right, type)
+    elif expression.operator == ">=":
+        return interpret_expression(ctx, expression.left, type) >= interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "<=":
+        return interpret_expression(ctx, expression.left, type) <= interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "&&":
+        return interpret_expression(ctx, expression.left, type) and interpret_expression(ctx, expression.right, type)
+    elif expression.operator == "||":
+        return interpret_expression(ctx, expression.left, type) or interpret_expression(ctx, expression.right, type)

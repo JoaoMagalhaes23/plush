@@ -1,10 +1,10 @@
 define i32 @main() {
 entry:
    %retval = alloca i32
-   %actual_min = alloca float
-   store float 0x400b333333333333, float* %actual_min
-   %x1 = load float, float* %actual_min
-   call void @print_float(float %x1)
+   %x = alloca i32
+   store i32 4, i32* %x
+   %x1 = load i32, i32* %x
+   call void @print_int(i32 %x1)
    %x2 = load i32, i32* %retval
    ret i32 %x2
 }

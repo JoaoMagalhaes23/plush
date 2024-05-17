@@ -198,7 +198,7 @@ def verify_expression(ctx: Context, expression: Expression, type: Type=None):
     elif isinstance(expression, FunctionCall):
         return verify_function_call(ctx=ctx, node=expression, type=type)
     elif isinstance(expression, AccessArray):
-        return verify_access_array(ctx=ctx, node=expression, type=type)
+        return verify_access_array(ctx=ctx, node=expression, _type=type)
 
 def verify_immutable_variable(ctx: Context, node: ImmutableVariable):
     if ctx.has_name_in_current_scope(name=node.name):
@@ -312,7 +312,7 @@ def verify_function_call(ctx: Context, node: FunctionCall, type: Type = None):
     if type is not None and return_type != type :
         raise TypeError(f"The function {node.name} returns {return_type} but it was expected {type}")
 
-def verify_access_array(ctx: Context, node: AccessArray, type: Type):
+def verify_access_array(ctx: Context, node: AccessArray, _type: Type):
     array_type = ctx.get_variable(name=node.array).type
     if not isinstance(array_type, ArrayType):
         raise TypeError(f"The variable {node.array} is not an array")
@@ -323,7 +323,7 @@ def verify_access_array(ctx: Context, node: AccessArray, type: Type):
             verify_expression(ctx=ctx, expression=index, type=IntType())
         except AttributeError:
             raise TypeError(f"Its impossible to do that many indexes in array {node.array}")
-    if a != type and type is not None:
+    if type(a) != type(_type) and _type is not None:
         raise TypeError("The type given is not the same as the result of indexing the array")
     node.type = a
     node.array_type = array_type

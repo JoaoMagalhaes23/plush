@@ -49,21 +49,11 @@ class Assign(Statement):
     type: Type = None
 
     def __str__(self):
-        return f"{self.__class__.__name__}"
-
-@dataclass
-class AccessArray(Expression):
-    array: str
-    indexes: list[Expression] = None
-    type: Type = None
-    array_type: Type = None
-    assigned: bool = False
-    def __str__(self):
-        return f"{self.__class__.__name__} -> {self.array}"
+        return f"{self.__class__.__name__} -> {self.variable}"
 
 @dataclass 
 class AssignArray(Statement):
-    _array: AccessArray = None
+    _array: Expression = None
     expression: Expression = None
     type: Type = None
 
@@ -119,6 +109,7 @@ class While(Statement):
     def __str__(self):
         return f"{self.__class__.__name__}"
 
+
 @dataclass
 class BinaryOp(Expression):
     op: str
@@ -151,41 +142,21 @@ class NotOp(Expression):
         return f"{self.__class__.__name__}"
 
 @dataclass
-class IntType(Type):
-    def __str__(self):
-        return self.__class__.__name__
+class Identifier(Expression):
+    id: str
+    type: Type = None
     
-@dataclass
-class StringType(Type):
     def __str__(self):
-        return self.__class__.__name__
+        return f"{self.__class__.__name__} -> {self.id}"
 
 @dataclass
-class BooleanType(Type):
-    def __str__(self):
-        return self.__class__.__name__
+class FunctionCall(Expression):
+    name: str
+    arguments: list[Expression] = None
+    type: Type = None
 
-@dataclass
-class CharType(Type):
     def __str__(self):
-        return self.__class__.__name__
-
-@dataclass
-class FloatType(Type):
-    def __str__(self):
-        return self.__class__.__name__
-
-@dataclass
-class VoidType(Type):
-    def __str__(self):
-        return self.__class__.__name__
-
-@dataclass
-class ArrayType(Type):
-    subtype: Type = None
-    size: int = None
-    def __str__(self):
-        return f"{self.__class__.__name__}"
+        return f"{self.__class__.__name__} -> {self.name}"
 
 @dataclass
 class StringLiteral(Expression):
@@ -230,22 +201,54 @@ class ArrayLiteral(Expression):
     def __str__(self):
         return f"{self.__class__.__name__}"
 
+
 @dataclass
-class Identifier(Expression):
-    id: str
+class AccessArray(Expression):
+    array: str
+    indexes: list[Expression] = None
     type: Type = None
+    array_type: Type = None
+    assigned: bool = False
+    def __str__(self):
+        return f"{self.__class__.__name__} -> {self.array}"
+
+@dataclass
+class IntType(Type):
+    def __str__(self):
+        return self.__class__.__name__
     
+@dataclass
+class StringType(Type):
     def __str__(self):
-        return f"{self.__class__.__name__} -> {self.id}"
+        return self.__class__.__name__
 
 @dataclass
-class FunctionCall(Expression):
-    name: str
-    arguments: list[Expression] = None
-    type: Type = None
-
+class BooleanType(Type):
     def __str__(self):
-        return f"{self.__class__.__name__} -> {self.name}"
+        return self.__class__.__name__
+
+@dataclass
+class CharType(Type):
+    def __str__(self):
+        return self.__class__.__name__
+
+@dataclass
+class FloatType(Type):
+    def __str__(self):
+        return self.__class__.__name__
+
+@dataclass
+class VoidType(Type):
+    def __str__(self):
+        return self.__class__.__name__
+
+@dataclass
+class ArrayType(Type):
+    subtype: Type = None
+    size: int = None
+    def __str__(self):
+        return f"{self.__class__.__name__}"
+
 
 def print_ast(node, indent=0):
     if isinstance(node, ProgramNode):
@@ -254,17 +257,13 @@ def print_ast(node, indent=0):
             for child in node.statements:
                 print_ast(child, indent + 1)
     elif isinstance(node, Statement):
-        print('\t' * indent + str(node))
-        if hasattr(node, '_array') and node._array:
-            print_ast(node._array, indent + 1)
-        if hasattr(node, 'identifier') and node.identifier:
-            print_ast(node.identifier, indent + 1)
-        if hasattr(node, 'variable') and node.variable:
-            print_ast(node.variable, indent + 1)
         if hasattr(node, 'expression') and node.expression:
             print_ast(node.expression, indent + 1)
         if hasattr(node, 'type') and node.type:
             print_ast(node.type, indent + 1)
+        print('\t' * indent + str(node))
+        if hasattr(node, '_array') and node._array:
+            print_ast(node._array, indent + 1)
         if hasattr(node, 'parameters') and node.parameters:
             for parameter in node.parameters:
                 print_ast(parameter, indent + 1)
@@ -281,12 +280,14 @@ def print_ast(node, indent=0):
             print_ast(node.b1, indent + 1)
         if hasattr(node, 'b2') and node.b2:
             print_ast(node.b2, indent + 1)
+            
     elif isinstance(node, Type):
         print('\t' * indent + str(node))
         if hasattr(node, 'subtype') and node.subtype:
             print_ast(node.subtype, indent + 1)
         if hasattr(node, 'size') and node.size:
             print('\t' * indent + "size " +  str(node.size))
+            
     elif isinstance(node, Expression):
         print('\t' * indent + str(node))
         if hasattr(node, 'elements'):
@@ -304,9 +305,6 @@ def print_ast(node, indent=0):
         if hasattr(node, 'indexes') and node.indexes:
             for index in node.indexes:
                 print_ast(index, indent + 1)
-        if hasattr(node, 'arguments') and node.arguments:
-            for argument in node.arguments:
-                print_ast(argument, indent + 1)
         if hasattr(node, 'size') and node.size:
             print('\t' * indent + "size " + str(node.size))
     else:
