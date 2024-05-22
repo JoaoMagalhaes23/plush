@@ -1,8 +1,9 @@
 llvm_tutorial/
 teacher_code/
-compiler/generated_files/
+code/compiler/generated_files
 .vscode/
-
+code/compiler/parser.out
+code/compiler/parsetab.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
