@@ -8,9 +8,9 @@
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "/home/magalhaes/fcul/tc/plush_testsuite/compiler/main.py",
+            "program": "/home/magalhaes/fcul/tc/plush_testsuite/code/compiler/main.py",
             "console": "integratedTerminal",
-            "args": ["/home/magalhaes/fcul/tc/plush_testsuite/compiler/tests/testing.pl", "0", "0", "0", "1"]
+            "args": ["/home/magalhaes/fcul/tc/plush_testsuite/code/tests/tests_for_work/0_valid/binarySearch/binarySearch.pl", "--json"]
         }
     ]
 }

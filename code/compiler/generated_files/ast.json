@@ -1,0 +1,449 @@
+{
+    "statements": [
+        {
+            "name": "binarySearch",
+            "parameters": [
+                {
+                    "name": "arr",
+                    "type": {
+                        "subtype": {},
+                        "size": null
+                    }
+                },
+                {
+                    "name": "target",
+                    "type": {}
+                },
+                {
+                    "name": "size",
+                    "type": {}
+                }
+            ],
+            "return_type": {},
+            "block": {
+                "statements": [
+                    {
+                        "name": "low",
+                        "type": {},
+                        "expression": {
+                            "value": 0,
+                            "type": {}
+                        }
+                    },
+                    {
+                        "name": "high",
+                        "type": {},
+                        "expression": {
+                            "op": "-",
+                            "left_expression": {
+                                "id": "size",
+                                "type": {}
+                            },
+                            "right_expression": {
+                                "value": 1,
+                                "type": {}
+                            },
+                            "type": {}
+                        }
+                    },
+                    {
+                        "name": "can_return",
+                        "type": {},
+                        "expression": {
+                            "value": "false",
+                            "type": {}
+                        }
+                    },
+                    {
+                        "variable": "binarySearch",
+                        "expression": {
+                            "expression": {
+                                "value": 1,
+                                "type": {}
+                            },
+                            "type": {}
+                        },
+                        "type": {}
+                    },
+                    {
+                        "condition": {
+                            "op": "&&",
+                            "left_expression": {
+                                "expression": {
+                                    "id": "can_return",
+                                    "type": {}
+                                },
+                                "type": {}
+                            },
+                            "right_expression": {
+                                "expression": {
+                                    "op": "<=",
+                                    "left_expression": {
+                                        "id": "low",
+                                        "type": {}
+                                    },
+                                    "right_expression": {
+                                        "id": "high",
+                                        "type": {}
+                                    },
+                                    "type": {}
+                                },
+                                "type": {}
+                            },
+                            "type": {}
+                        },
+                        "block": {
+                            "statements": [
+                                {
+                                    "name": "mid",
+                                    "type": {},
+                                    "expression": {
+                                        "op": "/",
+                                        "left_expression": {
+                                            "expression": {
+                                                "op": "+",
+                                                "left_expression": {
+                                                    "id": "low",
+                                                    "type": {}
+                                                },
+                                                "right_expression": {
+                                                    "id": "high",
+                                                    "type": {}
+                                                },
+                                                "type": {}
+                                            },
+                                            "type": {}
+                                        },
+                                        "right_expression": {
+                                            "value": 2,
+                                            "type": {}
+                                        },
+                                        "type": {}
+                                    }
+                                },
+                                {
+                                    "name": "mid_idx",
+                                    "type": {},
+                                    "expression": {
+                                        "array": "arr",
+                                        "indexes": [
+                                            {
+                                                "id": "mid",
+                                                "type": {}
+                                            }
+                                        ],
+                                        "type": {},
+                                        "array_type": {
+                                            "subtype": {},
+                                            "size": null
+                                        },
+                                        "assigned": false
+                                    }
+                                },
+                                {
+                                    "condition": {
+                                        "op": "=",
+                                        "left_expression": {
+                                            "id": "mid_idx",
+                                            "type": {}
+                                        },
+                                        "right_expression": {
+                                            "id": "target",
+                                            "type": {}
+                                        },
+                                        "type": {}
+                                    },
+                                    "b1": {
+                                        "statements": [
+                                            {
+                                                "variable": "binarySearch",
+                                                "expression": {
+                                                    "id": "mid",
+                                                    "type": {}
+                                                },
+                                                "type": {}
+                                            },
+                                            {
+                                                "variable": "can_return",
+                                                "expression": {
+                                                    "value": "true",
+                                                    "type": {}
+                                                },
+                                                "type": {}
+                                            }
+                                        ]
+                                    },
+                                    "b2": {
+                                        "condition": {
+                                            "op": "<",
+                                            "left_expression": {
+                                                "id": "mid_idx",
+                                                "type": {}
+                                            },
+                                            "right_expression": {
+                                                "id": "target",
+                                                "type": {}
+                                            },
+                                            "type": {}
+                                        },
+                                        "b1": {
+                                            "statements": [
+                                                {
+                                                    "variable": "low",
+                                                    "expression": {
+                                                        "op": "+",
+                                                        "left_expression": {
+                                                            "id": "mid",
+                                                            "type": {}
+                                                        },
+                                                        "right_expression": {
+                                                            "value": 1,
+                                                            "type": {}
+                                                        },
+                                                        "type": {}
+                                                    },
+                                                    "type": {}
+                                                }
+                                            ]
+                                        },
+                                        "b2": {
+                                            "statements": [
+                                                {
+                                                    "variable": "high",
+                                                    "expression": {
+                                                        "op": "-",
+                                                        "left_expression": {
+                                                            "id": "mid",
+                                                            "type": {}
+                                                        },
+                                                        "right_expression": {
+                                                            "value": 1,
+                                                            "type": {}
+                                                        },
+                                                        "type": {}
+                                                    },
+                                                    "type": {}
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "main",
+            "parameters": [],
+            "return_type": {},
+            "block": {
+                "statements": [
+                    {
+                        "name": "arr",
+                        "type": {
+                            "subtype": {},
+                            "size": 10
+                        },
+                        "expression": {
+                            "elements": [
+                                {
+                                    "value": 1,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 3,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 5,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 7,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 9,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 11,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 13,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 15,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 17,
+                                    "type": {}
+                                },
+                                {
+                                    "value": 19,
+                                    "type": {}
+                                }
+                            ],
+                            "type": {
+                                "subtype": {},
+                                "size": 10
+                            },
+                            "size": 10
+                        }
+                    },
+                    {
+                        "name": "target",
+                        "type": {},
+                        "expression": {
+                            "value": 13,
+                            "type": {}
+                        }
+                    },
+                    {
+                        "name": "index",
+                        "type": {},
+                        "expression": {
+                            "name": "binarySearch",
+                            "arguments": [
+                                {
+                                    "id": "arr",
+                                    "type": {
+                                        "subtype": {},
+                                        "size": 10
+                                    }
+                                },
+                                {
+                                    "id": "target",
+                                    "type": {}
+                                },
+                                {
+                                    "value": 10,
+                                    "type": {}
+                                }
+                            ],
+                            "type": {}
+                        }
+                    },
+                    {
+                        "condition": {
+                            "op": "!=",
+                            "left_expression": {
+                                "id": "index",
+                                "type": {}
+                            },
+                            "right_expression": {
+                                "expression": {
+                                    "value": 1,
+                                    "type": {}
+                                },
+                                "type": {}
+                            },
+                            "type": {}
+                        },
+                        "b1": {
+                            "statements": [
+                                {
+                                    "name": "print_string",
+                                    "arguments": [
+                                        {
+                                            "value": "Element ",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                },
+                                {
+                                    "name": "print_int",
+                                    "arguments": [
+                                        {
+                                            "id": "target",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                },
+                                {
+                                    "name": "print_string",
+                                    "arguments": [
+                                        {
+                                            "value": " found at index ",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                },
+                                {
+                                    "name": "print_int",
+                                    "arguments": [
+                                        {
+                                            "id": "index",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                },
+                                {
+                                    "name": "print_string",
+                                    "arguments": [
+                                        {
+                                            "value": ".\n",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                }
+                            ]
+                        },
+                        "b2": {
+                            "statements": [
+                                {
+                                    "name": "print_string",
+                                    "arguments": [
+                                        {
+                                            "value": "Element ",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                },
+                                {
+                                    "name": "print_int",
+                                    "arguments": [
+                                        {
+                                            "id": "target",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                },
+                                {
+                                    "name": "print_string",
+                                    "arguments": [
+                                        {
+                                            "value": " not found in the array.\n",
+                                            "type": {}
+                                        }
+                                    ],
+                                    "type": {}
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "variable": "main",
+                        "expression": {
+                            "value": 0,
+                            "type": {}
+                        },
+                        "type": {}
+                    }
+                ]
+            }
+        }
+    ]
+}
