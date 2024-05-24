@@ -3,6 +3,7 @@ from ply import lex
 import codecs
 
 reserved = {
+    'import'    : 'IMPORT',
     'if'        : 'IF',
     'else'      : 'ELSE',
     'while'     : 'WHILE',
@@ -127,9 +128,9 @@ def t_COMMENT(t):
 lexer = lex.lex()
 
 if __name__ == "__main__":
-    
     lexer.input(
         """
+        import sys;
         val actual_min : int := -9;
         val actual_max : int := 9;
 

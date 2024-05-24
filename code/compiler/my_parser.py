@@ -1,4 +1,4 @@
-from node import ProgramNode, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall 
+from node import print_ast, ProgramNode, ImportStatement, MutableVariable, ImmutableVariable, Assign, AssignArray, Function, MutableParameter, ImmutableParameter, Block, If, While, BinaryOp, Group, UnaryOp, NotOp, IntType, StringType, BooleanType, CharType, FloatType, VoidType, ArrayType, IntLiteral, StringLiteral, BooleanLiteral, CharLiteral, FloatLiteral, Identifier, AccessArray, ArrayLiteral, FunctionCall 
 from my_tokenizer import tokens
 from ply import yacc
 precedence = (
@@ -16,9 +16,30 @@ precedence = (
 
 def p_start(p):
     '''
-    start : top_level_declarations
+    start   : import_statements top_level_declarations
+            | top_level_declarations
     '''
-    p[0] = ProgramNode(statements=p[1])
+    if len(p) == 3:
+        p[0] = ProgramNode(imports=p[1], statements=p[2])
+    else:
+        p[0] = ProgramNode(statements=p[1])
+
+def p_import_statements(p):
+    '''
+    import_statements   : import_statement import_statements
+                        | import_statement
+    '''
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = [p[1]] + p[2]
+
+def p_import_statement(p):
+    '''
+    import_statement    : IMPORT ID SEMICOLON
+    '''
+    p[0] = ImportStatement(file_name=p[2])
+
 
 def p_top_level_declarations(p):
     '''
@@ -343,3 +364,30 @@ def p_error(p):
         raise TypeError("Syntax error at EOF")
     
 parser = yacc.yacc()
+
+if __name__ == "__main__":
+    data = """
+        import sis;
+        import aaaa;
+        val actual_min : int := -9;
+        val actual_max : int := 9;
+
+        function maxRangeSquared(var mi:int, val ma:int) : int {
+            var current_max : int := mi ^ 2;
+            while mi <= ma {
+                var current_candidate : int := mi ^ 2;
+                if current_candidate > current_max {
+                    current_max := current_candidate;
+                }
+            } 
+            maxRangeSquared := current_max; # This line returns the current max!
+        }
+
+
+        function main(val args:[string]): void {
+            val result : int := maxRangeSquared(actual_min, actual_max);
+            print_int(result);
+        }
+        """
+    result = parser.parse(data)
+    print_ast(result)

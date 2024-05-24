@@ -19,10 +19,17 @@ class Expression(Node):
 
 @dataclass
 class ProgramNode(Node):
+    imports: list[Statement] = None
     statements: list[Statement] = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
+
+@dataclass
+class ImportStatement(Statement):
+    file_name: str = None
+    def __str__(self):
+        return f"{self.__class__.__name__} -> {self.file_name}"
 
 @dataclass
 class ImmutableVariable(Statement):
@@ -201,7 +208,6 @@ class ArrayLiteral(Expression):
     def __str__(self):
         return f"{self.__class__.__name__}"
 
-
 @dataclass
 class AccessArray(Expression):
     array: str
@@ -214,36 +220,43 @@ class AccessArray(Expression):
 
 @dataclass
 class IntType(Type):
+    name: str = "int"
     def __str__(self):
         return self.__class__.__name__
     
 @dataclass
 class StringType(Type):
+    name: str = "string"
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
 class BooleanType(Type):
+    name: str = "boolean"
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
 class CharType(Type):
+    name: str = "char"
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
 class FloatType(Type):
+    name: str = "float"
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
 class VoidType(Type):
+    name: str = "void"
     def __str__(self):
         return self.__class__.__name__
 
 @dataclass
 class ArrayType(Type):
+    name: str = "array"
     subtype: Type = None
     size: int = None
     def __str__(self):
@@ -253,15 +266,18 @@ class ArrayType(Type):
 def print_ast(node, indent=0):
     if isinstance(node, ProgramNode):
         print('\t' * indent + str(node))
+        if node.imports:
+            for child in node.imports:
+                print_ast(child, indent + 1)
         if node.statements:
             for child in node.statements:
                 print_ast(child, indent + 1)
     elif isinstance(node, Statement):
+        print('\t' * indent + str(node))
         if hasattr(node, 'expression') and node.expression:
             print_ast(node.expression, indent + 1)
         if hasattr(node, 'type') and node.type:
             print_ast(node.type, indent + 1)
-        print('\t' * indent + str(node))
         if hasattr(node, '_array') and node._array:
             print_ast(node._array, indent + 1)
         if hasattr(node, 'parameters') and node.parameters:
