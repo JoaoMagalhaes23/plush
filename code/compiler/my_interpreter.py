@@ -39,16 +39,18 @@ class Context(object):
     def exit_scope(self):
         self.stack.pop() 
 
-def interpreter(ctx: Context, ast: ProgramNode):
+def interpreter(ctx: Context, ast: ProgramNode, args: list):
     for statement in ast.statements:
         if isinstance(statement, ImmutableVariable) or isinstance(statement, MutableVariable):
             ctx.set_variable(statement.name, interpreter_expression(ctx, statement.expression))
         if isinstance(statement, Function):
+            statement.parameters = [ImmutableParameter(name="argc", type=IntType(), expression=len(args)), ImmutableParameter(name="argv", type=ArrayType(StringType()), expression=args)]
             ctx.set_function(statement.name, statement)
     main = ctx.get_function("main")
     if main is None:
         raise Exception("No main function")
     interpreter_statement(ctx, main.function)
+    
 
 def interpreter_statement(ctx: Context, stmt: Statement):
     if isinstance(stmt, Block):
@@ -115,7 +117,7 @@ def interpreter_parameter(ctx: Context, parameter: MutableParameter | ImmutableP
     ctx.set_variable(parameter.name, parameter.expression)
 
 def interpreter_function_call(ctx: Context, function_call: FunctionCall):
-    if function_call.name in ["print_int", "print_string", "print_char", "print_float", "print_boolean", "print_int_array", "print_2d_int_array"]:
+    if function_call.name in ["print_int", "print_string", "print_char", "print_float", "print_boolean", "print_int_array", "print_2d_int_array", "print_string_array"]:
         print(interpreter_expression(ctx, function_call.arguments[0]), end="")
     elif function_call.name == "concatenate_strings":
         return interpreter_expression(ctx, function_call.arguments[0]) + interpreter_expression(ctx, function_call.arguments[1], end="")

@@ -28,6 +28,13 @@ void print_int_array(int arr[], int size) {
     }
 }
 
+void print_string_array(char* arr[], int size) {
+    for (int i = 0; i < size; i++) {
+        printf("%s ", arr[i]);
+    }
+    printf("\n");
+}
+
 void print_2d_int_array(int **arr, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {

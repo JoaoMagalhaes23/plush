@@ -80,6 +80,7 @@ class Function(Statement):
 class MutableParameter(Statement):
     name: str
     type: Type
+    expression : Expression = None
 
     def __str__(self):
         return f"{self.__class__.__name__ }-> {self.name}"
@@ -88,6 +89,7 @@ class MutableParameter(Statement):
 class ImmutableParameter(Statement):
     name: str
     type: Type
+    expression : Expression = None
 
     def __str__(self):
         return f"{self.__class__.__name__} -> {self.name}"

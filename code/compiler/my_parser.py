@@ -36,7 +36,7 @@ def p_import_statements(p):
 
 def p_import_statement(p):
     '''
-    import_statement    : IMPORT ID SEMICOLON
+    import_statement    : IMPORT STRING_LITERAL SEMICOLON
     '''
     p[0] = ImportStatement(file_name=p[2])
 
@@ -51,7 +51,6 @@ def p_top_level_declarations(p):
     else:
         p[0] = [p[1]]
 
-    
 def p_top_level_declaration(p):
     '''
     top_level_declaration   : create_variable SEMICOLON

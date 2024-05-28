@@ -89,6 +89,7 @@ def compiler(ast: ProgramNode, emitter: Emitter=None):
     emitter << "declare void @print_2d_int_array(i32**, i32, i32)"
     emitter << "declare i8* @concatenate_strings(i8*, i8*)"
     emitter << "declare i8* @int_to_string(i32)"
+    emitter << "declare void @print_string_array(i8**, i32)"
     return emitter.get_code()
 
 def compiler_stmt(node: Statement, emitter: Emitter):

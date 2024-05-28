@@ -45,6 +45,7 @@ context_values = {
     "print_2d_int_array": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=ArrayType(subtype=ArrayType(subtype=IntType()))), ImmutableParameter(name="y", type=IntType()), ImmutableParameter(name="z", type=IntType())], return_type=VoidType()),
     "concatenate_strings": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=StringType()), MutableParameter(name="y", type=StringType())], return_type=StringType()),
     "int_to_string": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=IntType())], return_type=StringType()),
+    "print_string_array": FunctionDeclarationSignature(parameters=[MutableParameter(name="x", type=ArrayType(subtype=StringType())), ImmutableParameter(name="y", type=IntType())], return_type=VoidType()),
 }
 
 class Context(object):
@@ -117,21 +118,15 @@ class Context(object):
                 self.set_function_signature_in_scope(name=name, parameters=parameters, return_type=return_type)
             else:
                 self.set_function_declaration_signature_in_scope(name=name, parameters=parameters, return_type=return_type)
-                
-
-    def check_function_call(self, name: str, arguments: list[Expression]):
+    
+    def get_function_signature(self, name: str):
         scope = self.stack[::-1][0]
         temp = scope.get(name)
         if temp is None:
             raise TypeError(f"Function {name} is not defined")
         if isinstance(temp, ImmutableVariableDefinition) or isinstance(temp, MutableVariableDefinition):
             raise TypeError(f"{name} is not a function")
-        if len(temp.parameters) != len(arguments):
-            raise TypeError(f"Function {name} has {len(temp.parameters)} parameters but it was given {len(arguments)}")
-        for i in range(len(arguments)):
-            if type(temp.parameters[i].type) != type(arguments[i]):
-                raise TypeError(f"Function {name} has parameter {temp.parameters[i].type} but it was given {arguments[i]}")
-        return temp.return_type
+        return temp
     
     def has_name_in_current_scope(self, name: str):
         return name in self.stack[0]
@@ -257,12 +252,18 @@ def verify_binary_op(ctx: Context, node: BinaryOp, type: Type):
             raise TypeError(f"Operation {operation} can only be applied to numeric types")
         elif operation in ['&&', '||'] and not isinstance(type, BooleanType):
             raise TypeError(f"Operation {operation} can only be applied to boolean types")
+        elif operation in ['>', '>=', '<', '<='] and (isinstance(type, ArrayType) or isinstance(type, StringType) or isinstance(type, CharType)):
+            raise TypeError(f"Operation {operation} can only be applied to numeric types")
     else:
-        if operation in ['+', '-', '*', '/', '^', '%']:
+        if operation in ['+', '-', '*', '/', '^', '%'] and (isinstance(first_type, IntType) or isinstance(first_type, FloatType)):
             node.type = first_type
             return first_type
-        else:
+        elif operation in ['&&', '||'] and isinstance(first_type, BooleanType):
+            node.type = first_type
+            return first_type
+        elif operation in ['>', '>=', '<', '<='] and not (isinstance(first_type, ArrayType) or isinstance(first_type, StringType) or isinstance(first_type, CharType)):
             node.type = BooleanType()
+        raise TypeError(f"Operation {operation} can only be applied to numeric types")
 
 def verify_not_op(ctx: Context, node: NotOp, type: Type = None):
     if type is not None:
@@ -303,14 +304,19 @@ def verify_identifier(ctx: Context, node: Identifier, type: Type = None):
         raise TypeError(f"The variable {node.id} is not of type {type}")
 
 def verify_function_call(ctx: Context, node: FunctionCall, type: Type = None):
+    _function = ctx.get_function_signature(name=node.name)
+    if len(_function.parameters) != len(node.arguments):
+        raise TypeError(f"Function {node.name} has {len(_function.parameters)} parameters but it was given {len(node.arguments)}")
+    idx=0
     arguments=[]
     for arg in node.arguments:
-        verify_expression(ctx=ctx, expression=arg)
+        verify_expression(ctx=ctx, expression=arg, type=_function.parameters[idx].type)
         arguments.append(arg.type)
-    return_type = ctx.check_function_call(name=node.name, arguments=arguments)
-    node.type = return_type
-    if type is not None and return_type != type :
-        raise TypeError(f"The function {node.name} returns {return_type} but it was expected {type}")
+        idx+=1
+    if type is not None and _function.return_type != type :
+        raise TypeError(f"The function {node.name} returns {_function.return_type} but it was expected {type}")
+    node.type = _function.return_type
+
 
 def verify_access_array(ctx: Context, node: AccessArray, _type: Type):
     array_type = ctx.get_variable(name=node.array).type
@@ -332,7 +338,7 @@ def verify_access_array(ctx: Context, node: AccessArray, _type: Type):
 ## Verify Literal Types
 
 def verify_array_literal(ctx: Context, node: ArrayLiteral, type: Type):
-    if not isinstance(type, ArrayType):
+    if type is not None and not isinstance(type, ArrayType):
         raise TypeError(f"It was needed a {type} but it was given ArrayType")
     if node.elements is not None:
         for element in node.elements:
